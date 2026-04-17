@@ -218,10 +218,11 @@
         .crew-node {
             position: absolute;
             background: #16213e;
-            border-radius: 12px;
+            border-radius: 16px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
             cursor: move;
-            min-width: 300px;
+            min-width: 400px;
+            min-height: 200px;
             border: 2px solid #e94560;
         }
 
@@ -234,9 +235,9 @@
         }
 
         .crew-header {
-            padding: 12px 16px;
+            padding: 14px 18px;
             background: #e94560;
-            border-radius: 10px 10px 0 0;
+            border-radius: 14px 14px 0 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -248,28 +249,27 @@
         }
 
         .crew-header h3 {
-            font-size: 14px;
+            font-size: 15px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
         .crew-process {
-            font-size: 10px;
+            font-size: 11px;
             background: rgba(0,0,0,0.2);
-            padding: 3px 8px;
-            border-radius: 10px;
+            padding: 4px 10px;
+            border-radius: 12px;
         }
 
         .crew-body {
-            padding: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
         .crew-section {
-            margin-bottom: 12px;
-        }
-
-        .crew-section:last-child {
             margin-bottom: 0;
         }
 
@@ -277,43 +277,65 @@
             font-size: 10px;
             text-transform: uppercase;
             color: #666;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .crew-agents, .crew-tasks {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
+            gap: 8px;
         }
 
         .crew-badge {
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 11px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .crew-badge:hover {
+            transform: translateY(-2px);
         }
 
         .crew-badge.agent {
             background: #10b98120;
             color: #10b981;
+            border: 1px solid #10b98140;
         }
 
         .crew-badge.task {
             background: #3b82f620;
             color: #3b82f6;
+            border: 1px solid #3b82f640;
         }
 
         .crew-badge .remove {
             cursor: pointer;
             opacity: 0;
             transition: opacity 0.2s;
-            margin-left: 4px;
+            margin-left: 6px;
+            font-size: 16px;
         }
 
         .crew-badge:hover .remove {
             opacity: 1;
+        }
+
+        /* Agent inside crew with tools indicator */
+        .crew-badge.agent.has-tools::after {
+            content: '🔧';
+            font-size: 10px;
+            margin-left: 4px;
+        }
+
+        /* Drop zone highlight */
+        .crew-node.drag-over {
+            border-color: #fff;
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
         }
 
         /* Connection Ports */
@@ -826,6 +848,12 @@
 
                 const processLabel = crew.process === 'hierarchical' ? '⭐ Hierarchical' : '▶ Sequential';
 
+                // Check if agents have tools
+                const agentsWithTools = crew.agents.map(a => {
+                    const hasTools = store.agents[a]?.tools?.length > 0;
+                    return { name: a, hasTools };
+                });
+
                 node.innerHTML = `
                     <div class="crew-header">
                         <h3>🚀 ${crew.name}</h3>
@@ -835,29 +863,65 @@
                         <div class="crew-section">
                             <div class="crew-section-title">Agents</div>
                             <div class="crew-agents">
-                                ${crew.agents.map(a => `
-                                    <span class="crew-badge agent">
-                                        👤 ${a}
-                                        <span class="remove" onclick="removeFromCrew('${crew.name}', 'agent', '${a}')">×</span>
-                                    </span>
-                                `).join('') || '<span style="color:#666;font-size:11px;">Drag agent here</span>'}
+                                ${crew.agents.length > 0
+                                    ? crew.agents.map(a => `
+                                        <span class="crew-badge agent ${store.agents[a]?.tools?.length > 0 ? 'has-tools' : ''}"
+                                              onclick="openEditModal('agent', '${a}')"
+                                              title="Click to edit agent">
+                                            👤 ${a}
+                                            <span class="remove" onclick="event.stopPropagation(); removeFromCrew('${crew.name}', 'agent', '${a}')">×</span>
+                                        </span>
+                                    `).join('')
+                                    : '<span style="color:#666;font-size:11px;">Drag agent here</span>'
+                                }
                             </div>
                         </div>
                         <div class="crew-section">
                             <div class="crew-section-title">Tasks</div>
                             <div class="crew-tasks">
-                                ${crew.tasks.map((t, i) => `
-                                    <span class="crew-badge task">
-                                        ${i + 1}. ${t}
-                                        <span class="remove" onclick="removeFromCrew('${crew.name}', 'task', '${t}')">×</span>
-                                    </span>
-                                `).join('') || '<span style="color:#666;font-size:11px;">Drag task here</span>'}
+                                ${crew.tasks.length > 0
+                                    ? crew.tasks.map((t, i) => `
+                                        <span class="crew-badge task" onclick="openEditModal('task', '${t}')" title="Click to edit task">
+                                            📋 ${i + 1}. ${t}
+                                            <span class="remove" onclick="event.stopPropagation(); removeFromCrew('${crew.name}', 'task', '${t}')">×</span>
+                                        </span>
+                                    `).join('')
+                                    : '<span style="color:#666;font-size:11px;">Drag task here</span>'
+                                }
                             </div>
                         </div>
                     </div>
                     <div class="port output-right"></div>
                     <div class="port output-left"></div>
                 `;
+
+                // Add drag-over listener
+                node.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    node.classList.add('drag-over');
+                });
+
+                node.addEventListener('dragleave', () => {
+                    node.classList.remove('drag-over');
+                });
+
+                node.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    node.classList.remove('drag-over');
+                    if (!draggedData) return;
+
+                    // If dragging tool onto agent in this crew
+                    if (draggedData.type === 'tool' && draggedData.targetAgent) {
+                        // Link tool to agent
+                        if (!store.agents[draggedData.targetAgent].tools.includes(draggedData.name)) {
+                            store.agents[draggedData.targetAgent].tools.push(draggedData.name);
+                            store.tools[draggedData.name].agents.push(draggedData.targetAgent);
+                        }
+                    } else if (draggedData.type === 'agent' || draggedData.type === 'task') {
+                        addToCrew(crew.name, draggedData.type, draggedData.name);
+                    }
+                    draggedData = null;
+                });
 
                 inner.appendChild(node);
             });
@@ -888,12 +952,30 @@
         let draggedData = null;
 
         function handleDragStart(e) {
-            draggedData = {
-                type: e.target.dataset.type,
-                name: e.target.dataset.name
-            };
+            const type = e.target.dataset.type;
+            const name = e.target.dataset.name;
+
+            draggedData = { type, name };
+
+            // If it's a tool, we might be dragging onto an agent
+            if (type === 'tool') {
+                // Check if we're over an agent badge
+                draggedData.targetAgent = null;
+            }
+
             e.dataTransfer.effectAllowed = 'copy';
         }
+
+        // Update dragover on agent badges to set targetAgent
+        document.addEventListener('dragover', (e) => {
+            if (draggedData?.type === 'tool') {
+                const agentBadge = e.target.closest('.crew-badge.agent');
+                if (agentBadge) {
+                    const agentName = agentBadge.textContent.replace('×', '').trim().split(' ').slice(1).join(' ');
+                    draggedData.targetAgent = agentName;
+                }
+            }
+        });
 
         // Canvas panning
         const canvas = document.getElementById('canvas');
@@ -1208,16 +1290,15 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Position</label>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>X</label>
-                                <input type="number" id="f-x" value="${data.x}">
-                            </div>
-                            <div class="form-group">
-                                <label>Y</label>
-                                <input type="number" id="f-y" value="${data.y}">
-                            </div>
+                        <label>Agents (click to remove)</label>
+                        <div class="badge-list">
+                            ${data.agents.map(a => `<span class="badge agent">👤 ${a} <span class="remove" onclick="removeCrewAgent('${entity}', '${a}')">×</span></span>`).join('') || '<span style="color:#666;font-size:12px;">Drag agent here</span>'}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Tasks (click to remove)</label>
+                        <div class="badge-list">
+                            ${data.tasks.map((t, i) => `<span class="badge task">📋 ${i+1}. ${t} <span class="remove" onclick="removeCrewTask('${entity}', '${t}')">×</span></span>`).join('') || '<span style="color:#666;font-size:12px;">Drag task here</span>'}
                         </div>
                     </div>
                 `;
@@ -1309,8 +1390,6 @@
                     const newName = document.getElementById('f-name').value;
                     store.crews[entity].name = newName;
                     store.crews[entity].process = document.getElementById('f-process').value;
-                    store.crews[entity].x = parseInt(document.getElementById('f-x').value);
-                    store.crews[entity].y = parseInt(document.getElementById('f-y').value);
                     if (entity !== newName) {
                         store.crews[newName] = store.crews[entity];
                         delete store.crews[entity];
@@ -1361,6 +1440,16 @@
             renderSidebar();
         }
 
+        function removeCrewAgent(crewName, agentName) {
+            store.crews[crewName].agents = store.crews[crewName].agents.filter(a => a !== agentName);
+            renderCanvas();
+        }
+
+        function removeCrewTask(crewName, taskName) {
+            store.crews[crewName].tasks = store.crews[crewName].tasks.filter(t => t !== taskName);
+            renderCanvas();
+        }
+
         // ========== HELP ==========
         function toggleHelp() {
             document.getElementById('helpPanel').classList.toggle('active');
@@ -1380,15 +1469,25 @@
         renderSidebar();
         renderCanvas();
 
-        // Click on crew node header to edit
+        // Click on crew node to edit crew
         document.addEventListener('click', (e) => {
+            const crewBadge = e.target.closest('.crew-badge.agent, .crew-badge.task');
+            if (crewBadge) {
+                // Clicked on agent or task badge inside crew
+                e.stopPropagation();
+                const type = crewBadge.classList.contains('agent') ? 'agent' : 'task';
+                const name = crewBadge.textContent.replace('×', '').trim().split(' ').slice(1).join(' ');
+                openEditModal(type, name);
+                return;
+            }
+
             const crewNode = e.target.closest('.crew-node');
             if (crewNode && !e.target.classList.contains('remove') && !e.target.classList.contains('port')) {
                 openEditModal('crew', crewNode.dataset.crew);
             }
         });
 
-        // Click on sidebar items to edit
+        // Double-click on sidebar items to edit
         document.addEventListener('dblclick', (e) => {
             const item = e.target.closest('.sidebar-item');
             if (item) {
