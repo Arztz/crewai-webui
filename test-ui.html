@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrewAI WebUI - Test Canvas</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: #16213e;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            color: #e94560;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header .btn {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        /* Main Layout */
+        .main {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: #16213e;
+            border-right: 1px solid #0f3460;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-search {
+            padding: 12px;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        .sidebar-search input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0f3460;
+            border: 1px solid #1a4a7a;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 12px;
+        }
+
+        .sidebar-search input:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 15px;
+        }
+
+        .sidebar-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 6px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .sidebar-section-header:hover {
+            background: #0f3460;
+        }
+
+        .sidebar-section-header h4 {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #888;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sidebar-section-header .count {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .collapse-icon {
+            font-size: 8px;
+            transition: transform 0.2s;
+        }
+
+        .sidebar-section.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+
+        .sidebar-section.collapsed .sidebar-items {
+            display: none;
+        }
+
+        .add-btn {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #e94560;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-btn:hover {
+            background: #ff6b8a;
+        }
+
+        .sidebar-items {
+            padding: 4px 0;
+        }
+
+        .sidebar-item {
+            padding: 8px 10px;
+            background: #0f3460;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .sidebar-item:hover {
+            background: #1a4a7a;
+            transform: translateX(4px);
+        }
+
+        .sidebar-item:active {
+            cursor: grabbing;
+        }
+
+        .sidebar-item .icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+        }
+
+        .tool-icon { background: #f59e0b; color: #1a1a2e; }
+        .agent-icon { background: #10b981; color: #1a1a2e; }
+        .task-icon { background: #3b82f6; color: #fff; }
+        .crew-icon { background: #e94560; color: #fff; }
+
+        /* Canvas */
+        .canvas {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 20px 20px, #0f3460 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .canvas-inner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        /* Panning */
+        .canvas-inner.panning {
+            cursor: grabbing;
+        }
+
+        /* Crew Nodes */
+        .crew-node {
+            position: absolute;
+            background: #16213e;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            cursor: move;
+            min-width: 300px;
+            border: 2px solid #e94560;
+        }
+
+        .crew-node:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .crew-node.hierarchical {
+            border-color: #9333ea;
+        }
+
+        .crew-header {
+            padding: 12px 16px;
+            background: #e94560;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: move;
+        }
+
+        .crew-node.hierarchical .crew-header {
+            background: #9333ea;
+        }
+
+        .crew-header h3 {
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .crew-process {
+            font-size: 10px;
+            background: rgba(0,0,0,0.2);
+            padding: 3px 8px;
+            border-radius: 10px;
+        }
+
+        .crew-body {
+            padding: 16px;
+        }
+
+        .crew-section {
+            margin-bottom: 12px;
+        }
+
+        .crew-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .crew-section-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .crew-agents, .crew-tasks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .crew-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .crew-badge.agent {
+            background: #10b98120;
+            color: #10b981;
+        }
+
+        .crew-badge.task {
+            background: #3b82f620;
+            color: #3b82f6;
+        }
+
+        .crew-badge .remove {
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            margin-left: 4px;
+        }
+
+        .crew-badge:hover .remove {
+            opacity: 1;
+        }
+
+        /* Connection Ports */
+        .port {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #0f3460;
+            border: 2px solid #e94560;
+            border-radius: 50%;
+            cursor: crosshair;
+            opacity: 0;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+
+        .crew-node:hover .port {
+            opacity: 1;
+        }
+
+        .port:hover {
+            background: #e94560;
+            transform: scale(1.3);
+        }
+
+        .port.output-right { right: -7px; top: 50%; transform: translateY(-50%); }
+        .port.output-left { left: -7px; top: 50%; transform: translateY(-50%); }
+        .port.output-bottom { bottom: -7px; left: 50%; transform: translateX(-50%); }
+        .port.output-top { top: -7px; left: 50%; transform: translateX(-50%); }
+
+        /* Chain Line */
+        .chain-line {
+            position: absolute;
+            pointer-events: none;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #16213e;
+            border-radius: 16px;
+            width: 480px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            color: #e94560;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 24px;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .modal-close:hover {
+            background: #0f3460;
+            color: #fff;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0f3460;
+            border: 1px solid #1a4a7a;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+
+        .form-group textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #0f3460;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-secondary {
+            background: #0f3460;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #1a4a7a;
+        }
+
+        .btn-primary {
+            background: #e94560;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #ff6b8a;
+        }
+
+        /* Link options in modal */
+        .link-options {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .link-option {
+            padding: 10px 12px;
+            background: #0f3460;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s;
+        }
+
+        .link-option:hover {
+            background: #1a4a7a;
+        }
+
+        .link-option.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Agent/Task badges in modal */
+        .badge-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge .remove {
+            cursor: pointer;
+            font-size: 14px;
+            opacity: 0.6;
+        }
+
+        .badge .remove:hover {
+            opacity: 1;
+        }
+
+        .badge.tool { background: #f59e0b20; color: #f59e0b; }
+        .badge.agent { background: #10b98120; color: #10b981; }
+        .badge.task { background: #3b82f620; color: #3b82f6; }
+
+        /* Help overlay */
+        .help-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .help-panel.active {
+            display: flex;
+        }
+
+        .help-content {
+            background: #16213e;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .help-content h2 {
+            color: #e94560;
+            margin-bottom: 20px;
+        }
+
+        .help-content h4 {
+            color: #888;
+            margin: 15px 0 10px;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .help-content p, .help-content li {
+            color: #ccc;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .help-content ul {
+            padding-left: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🚀 CrewAI WebUI</h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="toggleHelp()">? Help</button>
+            <button class="btn btn-primary" onclick="runCrew()">▶ Run Crew</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-search">
+                <input type="text" id="searchInput" placeholder="Search entities..." oninput="filterEntities()">
+            </div>
+            <div class="sidebar-content">
+                <!-- Tools -->
+                <div class="sidebar-section" id="section-tools">
+                    <div class="sidebar-section-header" onclick="toggleSection('tools')">
+                        <h4><span class="collapse-icon">▼</span> 🔧 Tools <span class="count" id="toolCount">(3)</span></h4>
+                        <button class="add-btn" onclick="event.stopPropagation(); openCreateModal('tool')">+</button>
+                    </div>
+                    <div class="sidebar-items" id="toolsList"></div>
+                </div>
+
+                <!-- Agents -->
+                <div class="sidebar-section" id="section-agents">
+                    <div class="sidebar-section-header" onclick="toggleSection('agents')">
+                        <h4><span class="collapse-icon">▼</span> 👤 Agents <span class="count" id="agentCount">(4)</span></h4>
+                        <button class="add-btn" onclick="event.stopPropagation(); openCreateModal('agent')">+</button>
+                    </div>
+                    <div class="sidebar-items" id="agentsList"></div>
+                </div>
+
+                <!-- Tasks -->
+                <div class="sidebar-section" id="section-tasks">
+                    <div class="sidebar-section-header" onclick="toggleSection('tasks')">
+                        <h4><span class="collapse-icon">▼</span> 📋 Tasks <span class="count" id="taskCount">(4)</span></h4>
+                        <button class="add-btn" onclick="event.stopPropagation(); openCreateModal('task')">+</button>
+                    </div>
+                    <div class="sidebar-items" id="tasksList"></div>
+                </div>
+
+                <!-- Crews -->
+                <div class="sidebar-section" id="section-crews">
+                    <div class="sidebar-section-header" onclick="toggleSection('crews')">
+                        <h4><span class="collapse-icon">▼</span> 🚀 Crews <span class="count" id="crewCount">(2)</span></h4>
+                        <button class="add-btn" onclick="event.stopPropagation(); openCreateModal('crew')">+</button>
+                    </div>
+                    <div class="sidebar-items" id="crewsList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="canvas" id="canvas">
+            <div class="canvas-inner" id="canvasInner">
+                <!-- Crew nodes will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Create</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" id="modalSubmit" onclick="submitModal()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Panel -->
+    <div class="help-panel" id="helpPanel">
+        <div class="help-content">
+            <h2>🚀 CrewAI WebUI Help</h2>
+
+            <h4>Sidebar</h4>
+            <ul>
+                <li>Click section headers to collapse/expand</li>
+                <li>Use search to filter entities</li>
+                <li>Drag entities from sidebar onto canvas</li>
+                <li>Click + to create new entity</li>
+            </ul>
+
+            <h4>Canvas</h4>
+            <ul>
+                <li>Drag canvas background to pan</li>
+                <li>Drag crew nodes to reposition</li>
+                <li>Click crew to view/edit</li>
+                <li>Drag entity onto crew to add it</li>
+            </ul>
+
+            <h4>Linking Entities</h4>
+            <ul>
+                <li>Drag Tool onto Agent → links tool to agent</li>
+                <li>Drag Task onto Agent → assigns agent to task</li>
+                <li>Drag Task onto Task → creates dependency</li>
+                <li>Click badges in modal to remove links</li>
+            </ul>
+
+            <h4>Process Modes</h4>
+            <ul>
+                <li>Sequential: Tasks run left-to-right</li>
+                <li>Hierarchical: Manager coordinates agents</li>
+            </ul>
+
+            <button class="btn btn-primary" onclick="toggleHelp()" style="margin-top:20px;width:100%;">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // ========== DATA STORE ==========
+        const store = {
+            tools: {
+                'web_search': { name: 'web_search', description: 'Search the web', type: 'decorator', agents: [] },
+                'pdf_reader': { name: 'pdf_reader', description: 'Read PDF files', type: 'basetool', agents: [] },
+                'calculator': { name: 'calculator', description: 'Math calculations', type: 'decorator', agents: [] }
+            },
+            agents: {
+                'Research': { name: 'Research', role: 'Research Analyst', goal: 'Research market trends', backstory: 'Expert researcher', tools: [] },
+                'Analyze': { name: 'Analyze', role: 'Data Analyst', goal: 'Analyze data', backstory: 'Data expert', tools: [] },
+                'Write': { name: 'Write', role: 'Writer', goal: 'Write content', backstory: 'Professional writer', tools: [] },
+                'QA': { name: 'QA', role: 'QA Engineer', goal: 'Ensure quality', backstory: 'Quality expert', tools: [] }
+            },
+            tasks: {
+                'Research': { title: 'Research', description: 'Research competitors', agent: null, context: [] },
+                'Analyze': { title: 'Analyze', description: 'Analyze data', agent: null, context: [] },
+                'Write': { title: 'Write', description: 'Write report', agent: null, context: [] },
+                'Review': { title: 'Review', description: 'Review work', agent: null, context: [] }
+            },
+            crews: {
+                'Market Team': {
+                    name: 'Market Team',
+                    process: 'sequential',
+                    agents: ['Research', 'Analyze', 'Write', 'QA'],
+                    tasks: ['Research', 'Analyze', 'Write', 'Review'],
+                    x: 50,
+                    y: 50
+                },
+                'Quick Team': {
+                    name: 'Quick Team',
+                    process: 'hierarchical',
+                    agents: ['Research', 'Analyze'],
+                    tasks: ['Research', 'Analyze'],
+                    x: 50,
+                    y: 320
+                }
+            },
+            canvas: {
+                offsetX: 0,
+                offsetY: 0,
+                scale: 1
+            }
+        };
+
+        let currentModal = { type: null, mode: 'create', entity: null };
+
+        // ========== RENDERING ==========
+        function renderSidebar() {
+            // Tools
+            const toolsList = document.getElementById('toolsList');
+            toolsList.innerHTML = Object.values(store.tools).map(t => `
+                <div class="sidebar-item" draggable="true" data-type="tool" data-name="${t.name}">
+                    <span class="icon tool-icon">🔧</span>
+                    ${t.name}
+                </div>
+            `).join('');
+            document.getElementById('toolCount').textContent = `(${Object.keys(store.tools).length})`;
+
+            // Agents
+            const agentsList = document.getElementById('agentsList');
+            agentsList.innerHTML = Object.values(store.agents).map(a => `
+                <div class="sidebar-item" draggable="true" data-type="agent" data-name="${a.name}">
+                    <span class="icon agent-icon">👤</span>
+                    ${a.name}
+                </div>
+            `).join('');
+            document.getElementById('agentCount').textContent = `(${Object.keys(store.agents).length})`;
+
+            // Tasks
+            const tasksList = document.getElementById('tasksList');
+            tasksList.innerHTML = Object.values(store.tasks).map(t => `
+                <div class="sidebar-item" draggable="true" data-type="task" data-name="${t.title}">
+                    <span class="icon task-icon">📋</span>
+                    ${t.title}
+                </div>
+            `).join('');
+            document.getElementById('taskCount').textContent = `(${Object.keys(store.tasks).length})`;
+
+            // Crews
+            const crewsList = document.getElementById('crewsList');
+            crewsList.innerHTML = Object.values(store.crews).map(c => `
+                <div class="sidebar-item" draggable="true" data-type="crew" data-name="${c.name}">
+                    <span class="icon crew-icon">🚀</span>
+                    ${c.name}
+                </div>
+            `).join('');
+            document.getElementById('crewCount').textContent = `(${Object.keys(store.crews).length})`;
+
+            // Add drag handlers
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+            });
+        }
+
+        function renderCanvas() {
+            const inner = document.getElementById('canvasInner');
+            inner.innerHTML = '';
+
+            // Render crew nodes
+            Object.values(store.crews).forEach(crew => {
+                const node = document.createElement('div');
+                node.className = `crew-node ${crew.process === 'hierarchical' ? 'hierarchical' : ''}`;
+                node.style.left = crew.x + 'px';
+                node.style.top = crew.y + 'px';
+                node.dataset.crew = crew.name;
+
+                const processLabel = crew.process === 'hierarchical' ? '⭐ Hierarchical' : '▶ Sequential';
+
+                node.innerHTML = `
+                    <div class="crew-header">
+                        <h3>🚀 ${crew.name}</h3>
+                        <span class="crew-process">${processLabel}</span>
+                    </div>
+                    <div class="crew-body">
+                        <div class="crew-section">
+                            <div class="crew-section-title">Agents</div>
+                            <div class="crew-agents">
+                                ${crew.agents.map(a => `
+                                    <span class="crew-badge agent">
+                                        👤 ${a}
+                                        <span class="remove" onclick="removeFromCrew('${crew.name}', 'agent', '${a}')">×</span>
+                                    </span>
+                                `).join('') || '<span style="color:#666;font-size:11px;">Drag agent here</span>'}
+                            </div>
+                        </div>
+                        <div class="crew-section">
+                            <div class="crew-section-title">Tasks</div>
+                            <div class="crew-tasks">
+                                ${crew.tasks.map((t, i) => `
+                                    <span class="crew-badge task">
+                                        ${i + 1}. ${t}
+                                        <span class="remove" onclick="removeFromCrew('${crew.name}', 'task', '${t}')">×</span>
+                                    </span>
+                                `).join('') || '<span style="color:#666;font-size:11px;">Drag task here</span>'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="port output-right"></div>
+                    <div class="port output-left"></div>
+                `;
+
+                inner.appendChild(node);
+            });
+
+            // Render chain lines between crews
+            renderChainLines();
+        }
+
+        function renderChainLines() {
+            // For now, simple visual - would render SVG lines between chained crews
+        }
+
+        // ========== SIDEBAR ACTIONS ==========
+        function toggleSection(section) {
+            const el = document.getElementById(`section-${section}`);
+            el.classList.toggle('collapsed');
+        }
+
+        function filterEntities() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(search) ? 'flex' : 'none';
+            });
+        }
+
+        // ========== DRAG & DROP ==========
+        let draggedData = null;
+
+        function handleDragStart(e) {
+            draggedData = {
+                type: e.target.dataset.type,
+                name: e.target.dataset.name
+            };
+            e.dataTransfer.effectAllowed = 'copy';
+        }
+
+        // Canvas panning
+        const canvas = document.getElementById('canvas');
+        const canvasInner = document.getElementById('canvasInner');
+        let isPanning = false;
+        let panStart = { x: 0, y: 0 };
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.target === canvas || e.target === canvasInner) {
+                isPanning = true;
+                panStart = { x: e.clientX - store.canvas.offsetX, y: e.clientY - store.canvas.offsetY };
+                canvasInner.style.cursor = 'grabbing';
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isPanning) {
+                store.canvas.offsetX = e.clientX - panStart.x;
+                store.canvas.offsetY = e.clientY - panStart.y;
+                canvasInner.style.transform = `translate(${store.canvas.offsetX}px, ${store.canvas.offsetY}px)`;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isPanning = false;
+            canvasInner.style.cursor = 'default';
+        });
+
+        // Drop on canvas/crew
+        canvas.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        canvas.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (!draggedData) return;
+
+            // Check if dropped on a crew node
+            const crewNode = document.elementFromPoint(e.clientX, e.clientY)?.closest('.crew-node');
+
+            if (crewNode) {
+                const crewName = crewNode.dataset.crew;
+                addToCrew(crewName, draggedData.type, draggedData.name);
+            } else if (draggedData.type === 'crew') {
+                // Create new crew at drop position
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left - store.canvas.offsetX - 150;
+                const y = e.clientY - rect.top - store.canvas.offsetY;
+                store.crews[draggedData.name].x = x;
+                store.crews[draggedData.name].y = y;
+                renderCanvas();
+            }
+
+            draggedData = null;
+        });
+
+        // Crew node dragging
+        let draggedCrew = null;
+        let crewOffset = { x: 0, y: 0 };
+
+        document.addEventListener('mousedown', (e) => {
+            const crewNode = e.target.closest('.crew-node');
+            if (crewNode && !e.target.classList.contains('remove')) {
+                draggedCrew = crewNode.dataset.crew;
+                const rect = crewNode.getBoundingClientRect();
+                crewOffset = {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (draggedCrew) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left - store.canvas.offsetX - crewOffset.x;
+                const y = e.clientY - rect.top - store.canvas.offsetY;
+                store.crews[draggedCrew].x = Math.max(0, x);
+                store.crews[draggedCrew].y = Math.max(0, y);
+                renderCanvas();
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            draggedCrew = null;
+        });
+
+        // ========== CREW MANAGEMENT ==========
+        function addToCrew(crewName, type, name) {
+            const crew = store.crews[crewName];
+            if (!crew) return;
+
+            if (type === 'agent' && !crew.agents.includes(name)) {
+                crew.agents.push(name);
+                renderCanvas();
+            } else if (type === 'task' && !crew.tasks.includes(name)) {
+                crew.tasks.push(name);
+                renderCanvas();
+            }
+        }
+
+        function removeFromCrew(crewName, type, name) {
+            const crew = store.crews[crewName];
+            if (!crew) return;
+
+            if (type === 'agent') {
+                crew.agents = crew.agents.filter(a => a !== name);
+            } else if (type === 'task') {
+                crew.tasks = crew.tasks.filter(t => t !== name);
+            }
+            renderCanvas();
+        }
+
+        // ========== MODALS ==========
+        function openCreateModal(type) {
+            currentModal = { type, mode: 'create', entity: null };
+            const titles = { tool: 'Create Tool', agent: 'Create Agent', task: 'Create Task', crew: 'Create Crew' };
+            document.getElementById('modalTitle').textContent = titles[type];
+            document.getElementById('modalBody').innerHTML = getCreateForm(type);
+            document.getElementById('modalSubmit').textContent = 'Create';
+            document.getElementById('modalSubmit').onclick = submitModal;
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function openEditModal(type, name) {
+            currentModal = { type, mode: 'edit', entity: name };
+
+            let data;
+            if (type === 'tool') data = store.tools[name];
+            else if (type === 'agent') data = store.agents[name];
+            else if (type === 'task') data = store.tasks[name];
+            else if (type === 'crew') data = store.crews[name];
+
+            const titles = { tool: 'Edit Tool', agent: 'Edit Agent', task: 'Edit Task', crew: 'Edit Crew' };
+            document.getElementById('modalTitle').textContent = titles[type];
+            document.getElementById('modalBody').innerHTML = getEditForm(type, name, data);
+            document.getElementById('modalSubmit').textContent = 'Save';
+            document.getElementById('modalSubmit').onclick = submitModal;
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function openLinkModal(context, entityName) {
+            // context like 'crew_agent', 'task_agent', 'agent_tool'
+            const [fromType, toType] = context.split('_');
+            currentModal = { type: 'link', mode: 'link', context, entity: entityName };
+
+            document.getElementById('modalTitle').textContent = `Add ${toType.charAt(0).toUpperCase() + toType.slice(1)}`;
+            document.getElementById('modalBody').innerHTML = getLinkOptions(fromType, toType, entityName);
+            document.getElementById('modalSubmit').style.display = 'none';
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.getElementById('modalSubmit').style.display = 'block';
+            currentModal = { type: null, mode: 'create', entity: null };
+        }
+
+        function getCreateForm(type) {
+            if (type === 'tool') {
+                return `
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="f-name" placeholder="e.g., web_search">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="f-description" placeholder="What does this tool do?"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <select id="f-type">
+                            <option value="decorator">Decorator</option>
+                            <option value="basetool">BaseTool</option>
+                            <option value="mcp">MCP</option>
+                            <option value="http">HTTP</option>
+                        </select>
+                    </div>
+                `;
+            } else if (type === 'agent') {
+                return `
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="f-name" placeholder="e.g., Research">
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <input type="text" id="f-role" placeholder="e.g., Research Analyst">
+                    </div>
+                    <div class="form-group">
+                        <label>Goal</label>
+                        <textarea id="f-goal" placeholder="What is this agent's objective?"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Backstory</label>
+                        <textarea id="f-backstory" placeholder="Agent background..."></textarea>
+                    </div>
+                `;
+            } else if (type === 'task') {
+                return `
+                    <div class="form-group">
+                        <label>Title</label>
+                        <input type="text" id="f-title" placeholder="e.g., Research">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="f-description" placeholder="What should be done?"></textarea>
+                    </div>
+                `;
+            } else if (type === 'crew') {
+                return `
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="f-name" placeholder="e.g., Market Team">
+                    </div>
+                    <div class="form-group">
+                        <label>Process</label>
+                        <select id="f-process">
+                            <option value="sequential">Sequential</option>
+                            <option value="hierarchical">Hierarchical</option>
+                        </select>
+                    </div>
+                `;
+            }
+            return '';
+        }
+
+        function getEditForm(type, name, data) {
+            if (type === 'tool') {
+                return `
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="f-name" value="${data.name}">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="f-description">${data.description}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <select id="f-type">
+                            <option value="decorator" ${data.type === 'decorator' ? 'selected' : ''}>Decorator</option>
+                            <option value="basetool" ${data.type === 'basetool' ? 'selected' : ''}>BaseTool</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Linked Agents</label>
+                        <div class="badge-list">
+                            ${data.agents.map(a => `<span class="badge agent">👤 ${a} <span class="remove" onclick="unlinkToolAgent('${name}', '${a}')">×</span></span>`).join('') || '<span style="color:#666;font-size:12px;">No agents linked</span>'}
+                        </div>
+                        <button class="btn btn-secondary" style="width:100%;" onclick="openLinkModal('tool_agent', '${name}')">+ Add Agent</button>
+                    </div>
+                `;
+            } else if (type === 'agent') {
+                return `
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="f-name" value="${data.name}">
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <input type="text" id="f-role" value="${data.role}">
+                    </div>
+                    <div class="form-group">
+                        <label>Goal</label>
+                        <textarea id="f-goal">${data.goal}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Tools</label>
+                        <div class="badge-list">
+                            ${data.tools.map(t => `<span class="badge tool">🔧 ${t} <span class="remove" onclick="unlinkAgentTool('${name}', '${t}')">×</span></span>`).join('') || '<span style="color:#666;font-size:12px;">No tools linked</span>'}
+                        </div>
+                        <button class="btn btn-secondary" style="width:100%;" onclick="openLinkModal('agent_tool', '${name}')">+ Add Tool</button>
+                    </div>
+                `;
+            } else if (type === 'task') {
+                return `
+                    <div class="form-group">
+                        <label>Title</label>
+                        <input type="text" id="f-title" value="${data.title}">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="f-description">${data.description}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Assigned Agent</label>
+                        <div class="badge-list">
+                            ${data.agent ? `<span class="badge agent">👤 ${data.agent} <span class="remove" onclick="unassignTaskAgent('${name}')">×</span></span>` : '<span style="color:#666;font-size:12px;">No agent assigned</span>'}
+                        </div>
+                        <button class="btn btn-secondary" style="width:100%;" onclick="openLinkModal('task_agent', '${name}')">+ Assign Agent</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Dependencies</label>
+                        <div class="badge-list">
+                            ${data.context.map(c => `<span class="badge task">📋 ${c} <span class="remove" onclick="removeTaskContext('${name}', '${c}')">×</span></span>`).join('') || '<span style="color:#666;font-size:12px;">No dependencies</span>'}
+                        </div>
+                        <button class="btn btn-secondary" style="width:100%;" onclick="openLinkModal('task_context', '${name}')">+ Add Dependency</button>
+                    </div>
+                `;
+            } else if (type === 'crew') {
+                return `
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="f-name" value="${data.name}">
+                    </div>
+                    <div class="form-group">
+                        <label>Process</label>
+                        <select id="f-process">
+                            <option value="sequential" ${data.process === 'sequential' ? 'selected' : ''}>Sequential</option>
+                            <option value="hierarchical" ${data.process === 'hierarchical' ? 'selected' : ''}>Hierarchical</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Position</label>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>X</label>
+                                <input type="number" id="f-x" value="${data.x}">
+                            </div>
+                            <div class="form-group">
+                                <label>Y</label>
+                                <input type="number" id="f-y" value="${data.y}">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            return '';
+        }
+
+        function getLinkOptions(fromType, toType, entityName) {
+            let options = [];
+            let current = [];
+
+            if (fromType === 'tool' && toType === 'agent') {
+                current = store.tools[entityName].agents;
+                options = Object.keys(store.agents).filter(a => !current.includes(a));
+            } else if (fromType === 'agent' && toType === 'tool') {
+                current = store.agents[entityName].tools;
+                options = Object.keys(store.tools).filter(t => !current.includes(t));
+            } else if (fromType === 'task' && toType === 'agent') {
+                current = store.tasks[entityName].agent ? [store.tasks[entityName].agent] : [];
+                options = Object.keys(store.agents);
+            } else if (fromType === 'task' && toType === 'context') {
+                current = store.tasks[entityName].context;
+                options = Object.keys(store.tasks).filter(t => t !== entityName && !current.includes(t));
+            }
+
+            return `
+                <div class="link-options">
+                    ${options.length > 0
+                        ? options.map(opt => `
+                            <div class="link-option" onclick="doLink('${fromType}', '${entityName}', '${opt}')">
+                                <span class="icon ${toType === 'agent' ? 'agent' : toType === 'tool' ? 'tool' : 'task'}-icon">
+                                    ${toType === 'agent' ? '👤' : toType === 'tool' ? '🔧' : '📋'}
+                                </span>
+                                ${opt}
+                            </div>
+                        `).join('')
+                        : '<p style="color:#666;text-align:center;padding:20px;">No options available</p>'
+                    }
+                </div>
+            `;
+        }
+
+        function submitModal() {
+            const { type, mode, entity } = currentModal;
+
+            if (mode === 'create') {
+                if (type === 'tool') {
+                    const name = document.getElementById('f-name').value;
+                    const description = document.getElementById('f-description').value;
+                    const ttype = document.getElementById('f-type').value;
+                    store.tools[name] = { name, description, type: ttype, agents: [] };
+                } else if (type === 'agent') {
+                    const name = document.getElementById('f-name').value;
+                    const role = document.getElementById('f-role').value;
+                    const goal = document.getElementById('f-goal').value;
+                    const backstory = document.getElementById('f-backstory').value;
+                    store.agents[name] = { name, role, goal, backstory, tools: [] };
+                } else if (type === 'task') {
+                    const title = document.getElementById('f-title').value;
+                    const description = document.getElementById('f-description').value;
+                    store.tasks[title] = { title, description, agent: null, context: [] };
+                } else if (type === 'crew') {
+                    const name = document.getElementById('f-name').value;
+                    const process = document.getElementById('f-process').value;
+                    store.crews[name] = { name, process, agents: [], tasks: [], x: 50, y: 50 };
+                }
+            } else if (mode === 'edit') {
+                if (type === 'tool') {
+                    store.tools[entity].name = document.getElementById('f-name').value;
+                    store.tools[entity].description = document.getElementById('f-description').value;
+                    store.tools[entity].type = document.getElementById('f-type').value;
+                } else if (type === 'agent') {
+                    store.agents[entity].name = document.getElementById('f-name').value;
+                    store.agents[entity].role = document.getElementById('f-role').value;
+                    store.agents[entity].goal = document.getElementById('f-goal').value;
+                } else if (type === 'task') {
+                    const newTitle = document.getElementById('f-title').value;
+                    store.tasks[entity].title = newTitle;
+                    store.tasks[entity].description = document.getElementById('f-description').value;
+                    if (entity !== newTitle) {
+                        store.tasks[newTitle] = store.tasks[entity];
+                        delete store.tasks[entity];
+                        // Update crew references
+                        Object.values(store.crews).forEach(c => {
+                            c.tasks = c.tasks.map(t => t === entity ? newTitle : t);
+                        });
+                    }
+                } else if (type === 'crew') {
+                    const newName = document.getElementById('f-name').value;
+                    store.crews[entity].name = newName;
+                    store.crews[entity].process = document.getElementById('f-process').value;
+                    store.crews[entity].x = parseInt(document.getElementById('f-x').value);
+                    store.crews[entity].y = parseInt(document.getElementById('f-y').value);
+                    if (entity !== newName) {
+                        store.crews[newName] = store.crews[entity];
+                        delete store.crews[entity];
+                    }
+                }
+            }
+
+            closeModal();
+            renderSidebar();
+            renderCanvas();
+        }
+
+        function doLink(fromType, entityName, linkName) {
+            if (fromType === 'tool') {
+                store.tools[entityName].agents.push(linkName);
+            } else if (fromType === 'agent') {
+                store.agents[entityName].tools.push(linkName);
+            } else if (fromType === 'task' && currentModal.context === 'task_agent') {
+                store.tasks[entityName].agent = linkName;
+            } else if (fromType === 'task' && currentModal.context === 'task_context') {
+                store.tasks[entityName].context.push(linkName);
+            }
+            closeModal();
+            renderSidebar();
+            renderCanvas();
+        }
+
+        function unlinkToolAgent(toolName, agentName) {
+            store.tools[toolName].agents = store.tools[toolName].agents.filter(a => a !== agentName);
+            store.agents[agentName].tools = store.agents[agentName].tools.filter(t => t !== toolName);
+            renderSidebar();
+        }
+
+        function unlinkAgentTool(agentName, toolName) {
+            store.agents[agentName].tools = store.agents[agentName].tools.filter(t => t !== toolName);
+            store.tools[toolName].agents = store.tools[toolName].agents.filter(a => a !== agentName);
+            renderSidebar();
+        }
+
+        function unassignTaskAgent(taskName) {
+            const oldAgent = store.tasks[taskName].agent;
+            store.tasks[taskName].agent = null;
+            renderSidebar();
+        }
+
+        function removeTaskContext(taskName, contextName) {
+            store.tasks[taskName].context = store.tasks[taskName].context.filter(c => c !== contextName);
+            renderSidebar();
+        }
+
+        // ========== HELP ==========
+        function toggleHelp() {
+            document.getElementById('helpPanel').classList.toggle('active');
+        }
+
+        // ========== RUN ==========
+        function runCrew() {
+            const crewNames = Object.keys(store.crews);
+            if (crewNames.length === 0) {
+                alert('No crews to run!');
+                return;
+            }
+            alert(`Would run crew: ${crewNames[0]}\n\nIn full implementation, this would execute the selected crew.`);
+        }
+
+        // ========== INIT ==========
+        renderSidebar();
+        renderCanvas();
+
+        // Click on crew node header to edit
+        document.addEventListener('click', (e) => {
+            const crewNode = e.target.closest('.crew-node');
+            if (crewNode && !e.target.classList.contains('remove') && !e.target.classList.contains('port')) {
+                openEditModal('crew', crewNode.dataset.crew);
+            }
+        });
+
+        // Click on sidebar items to edit
+        document.addEventListener('dblclick', (e) => {
+            const item = e.target.closest('.sidebar-item');
+            if (item) {
+                const type = item.dataset.type;
+                const name = item.dataset.name;
+                openEditModal(type, name);
+            }
+        });
+
+        // Close modals on outside click
+        document.getElementById('modalOverlay').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modalOverlay')) {
+                closeModal();
+            }
+        });
+
+        document.getElementById('helpPanel').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('helpPanel')) {
+                toggleHelp();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.getElementById('helpPanel').classList.remove('active');
+            }
+        });
+    </script>
+</body>
+
+</html>
