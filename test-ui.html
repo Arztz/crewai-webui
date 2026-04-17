@@ -324,15 +324,7 @@
         .crew-badge:hover .remove {
             opacity: 1;
         }
-
-        /* Agent inside crew with tools indicator */
-        .crew-badge.agent.has-tools::after {
-            content: '🔧';
-            font-size: 10px;
-            margin-left: 4px;
-        }
-
-        /* Drop zone highlight */
+/* Drop zone highlight */
         .crew-node.drag-over {
             border-color: #fff;
             box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
@@ -932,25 +924,22 @@
                             store.agents[agentName].tools.push(draggedData.name);
                             store.tools[draggedData.name].agents.push(agentName);
                             renderCanvas();
+                            return;
                         }
                     } else if (draggedData.type === 'agent' || draggedData.type === 'task') {
                         addToCrew(crew.name, draggedData.type, draggedData.name);
                     }
-                    draggedData = null;
                 });
 
                 inner.appendChild(node);
             });
 
+            // Reset drag state
+            draggedData = null;
+
             // Render chain lines between crews
             renderChainLines();
         }
-
-        function renderChainLines() {
-            // For now, simple visual - would render SVG lines between chained crews
-        }
-
-        // ========== SIDEBAR ACTIONS ==========
         function toggleSection(section) {
             const el = document.getElementById(`section-${section}`);
             el.classList.toggle('collapsed');
@@ -971,16 +960,20 @@
             const type = e.target.dataset.type;
             const name = e.target.dataset.name;
 
-            draggedData = { type, name };
-
-            // If it's a tool, we might be dragging onto an agent
-            if (type === 'tool') {
-                // Check if we're over an agent badge
-                draggedData.targetAgent = null;
-            }
+            draggedData = { type, name, targetAgent: null };
 
             e.dataTransfer.effectAllowed = 'copy';
+            e.dataTransfer.setData('text/plain', name);
         }
+
+        // Reset drag state when drag ends (success or cancelled)
+        document.addEventListener('dragend', (e) => {
+            draggedData = null;
+            // Clear any lingering highlights
+            document.querySelectorAll('.crew-badge.agent').forEach(badge => {
+                badge.style.background = '';
+            });
+        });
 
         // Update dragover on agent badges to set targetAgent
         document.addEventListener('dragover', (e) => {

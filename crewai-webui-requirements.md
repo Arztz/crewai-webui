@@ -1,6 +1,6 @@
 # CrewAI WebUI Builder - Requirements Document
 
-> Created: April 2026 | Version: 1.0
+> Created: April 2026 | Version: 1.1 | Status: Implementation Sync
 
 ## Vision
 
@@ -58,23 +58,22 @@ A visual no-code web interface for building CrewAI workflows where every compone
 │  (table)  │  (table)  │  (table)  │      (table)       │
 ├─────────────┼─────────────┼─────────────┼─────────────────┤
 │  tool_id   │  agent_id  │  task_id   │      crew_id      │
-│  name      │  role      │  description│      name         │
-│  code      │  goal      │  expected_ou│      process     │
-│  schema    │  backstory │  agent_id   │      agents[]     │
-│  type      │  tools[]   │  tools[]   │      tasks[]       │
-│            │  llm_config│  context[] │      memory       │
-│            │            │            │      triggers[]   │
+│  name      │  name      │  title     │      name         │
+│  description│  role      │  description│      process     │
+│  type      │  goal      │  expected_ou│      agents[]     │
+│            │  backstory │  agent_id   │      tasks[]       │
+│            │  tools[]   │  context[] │      x, y (canvas)│
 └─────────────┴─────────────┴─────────────┴─────────────────────┘
 ```
 
-### Composition Flow
+### Canvas-Based Composition
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │              FLEXIBLE CREATION (Any Order)                      │
 ├──────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│   STEP 1: Create any entity first                               │
+│   STEP 1: Create any entity first (via + button or sidebar)      │
 │   ┌─────────────┐ ┌─────────────┐ ┌─────────────┐              │
 │   │ + Create   │ │ + Create   │ │ + Create   │              │
 │   │   TOOL     │ │   AGENT    │ │   TASK     │              │
@@ -83,37 +82,24 @@ A visual no-code web interface for building CrewAI workflows where every compone
 │         ▼               ▼               ▼                      │
 │   ┌─────────────────────────────────────────────┐              │
 │   │  Database: Empty references (null)           │              │
-│   │  - tool.tools_ids = [] (empty)              │              │
-│   │  - task.agent_id = null (not assigned)      │              │
+│   │  - agent.tools = [] (empty)                 │              │
+│   │  - task.agent = null (not assigned)        │              │
 │   └─────────────────────────────────────────────┘              │
 │                                                                  │
-│   STEP 2: Link/Compose later (any time)                         │
+│   STEP 2: Link/Compose on Canvas                                 │
 │                                                                  │
-│   Scenario A: Agent first → Tools later                        │
-│   ┌─────────────┐      ┌─────────────┐                         │
-│   │ Agent       │◄────►│   Tools     │                         │
-│   │ (existing)  │ link │  (new)      │                         │
-│   └─────────────┘      └─────────────┘                         │
-│                                                                  │
-│   Scenario B: Task first → Agent later                          │
-│   ┌─────────────┐      ┌─────────────┐                         │
-│   │ Task        │◄────►│   Agent     │                         │
-│   │ (existing)  │ link │  (new)      │                         │
-│   └─────────────┘      └─────────────┘                         │
-│                                                                  │
-│   STEP 3: Assemble in Crew (final step)                        │
-│   ┌────────────────────────────────────────────────────────┐   │
-│   │  CREW                                                    │   │
-│   │  ┌──────────┐  ┌──────────┐  ┌──────────┐             │   │
-│   │  │ Agent 1  │  │ Agent 2  │  │ Agent 3  │             │   │
-│   │  │ (linked) │  │ (linked) │  │ (linked) │             │   │
-│   │  └────┬─────┘  └────┬─────┘  └────┬─────┘             │   │
-│   │       │             │             │                     │   │
-│   │       ▼             ▼             ▼                     │   │
-│   │  ┌─────────┐   ┌─────────┐   ┌─────────┐              │   │
-│   │  │ Task 1  │   │ Task 2  │   │ Task 3  │              │   │
-│   │  └─────────┘   └─────────┘   └─────────┘              │   │
-│   └────────────────────────────────────────────────────────┘   │
+│   ┌─────────────────────────────────────────────┐              │
+│   │  CANVAS                                    │              │
+│   │                                             │              │
+│   │  🚀 Market Team (crew)                    │              │
+│   │  ┌──────────────────────────────┐        │              │
+│   │  │ Agents: 👤 Research 👤 Analyze│        │              │
+│   │  │ Tasks: 📋 1. Research 📋 2... │        │              │
+│   │  └──────────────────────────────┘        │              │
+│   │                                             │              │
+│   │  Drag Tool → Agent badge = link tool       │              │
+│   │  Drag Agent → Crew = add to crew           │              │
+│   └─────────────────────────────────────────────┘              │
 │                                                                  │
 │   KEY: Creation order is flexible - link anytime!              │
 └──────────────────────────────────────────────────────────────────┘
@@ -124,23 +110,20 @@ A visual no-code web interface for building CrewAI workflows where every compone
 #### Example 1: Agent First, Then Tools
 
 ```
-1. Go to Agents → Click [+ New Agent]
+1. Click [+] on Agents section in sidebar
    - Name: "Researcher"
    - Role: "Research Analyst"
    - Goal: "Research market trends"
    - Backstory: "Expert in market analysis"
    - Save → Agent created (tools = [])
-   
-2. Go to Tools → Click [+ New Tool]
+
+2. Click [+] on Tools section in sidebar
    - Name: "Web Search"
    - Description: "Search the web"
-   - Code: (write tool code)
    - Save → Tool created
-   
-3. Return to Agents → Open "Researcher"
-   - In "Tools" section, click [Add Tool]
-   - Select "Web Search" from library
-   - Save → Agent now has tool linked
+
+3. Drag Tool "Web Search" onto Agent "Researcher" badge
+   → Tool linked to agent
 
 Result: Agent created before tools even existed!
 ```
@@ -148,20 +131,19 @@ Result: Agent created before tools even existed!
 #### Example 2: Task First, Then Agent
 
 ```
-1. Go to Tasks → Click [+ New Task]
+1. Click [+] on Tasks section in sidebar
    - Title: "Research Competitors"
    - Description: "Find top 5 competitors"
-   - Expected Output: "Competitor list with analysis"
-   - Agent: (leave as "Not Assigned")
-   - Save → Task created (agent_id = null)
+   - Save → Task created (agent = null)
 
-2. Go to Agents → Create Agent
+2. Click [+] on Agents section
    - Name: "Business Analyst"
    - Role: "Competitor Analysis Expert"
-   
-3. Return to Tasks → Open "Research Competitors"
-   - In "Agent" dropdown, select "Business Analyst"
-   - Save → Task now linked to agent
+
+3. Open Task "Research Competitors" modal
+   - Click [+ Assign Agent]
+   - Select "Business Analyst"
+   → Task now linked to agent
 
 Result: Task existed before agent was created!
 ```
@@ -169,21 +151,16 @@ Result: Task existed before agent was created!
 #### Example 3: Crew Assembly (Final Step)
 
 ```
-1. Go to Crews → Click [+ New Crew]
+1. Click [+] on Crews section in sidebar
    - Name: "Market Analysis Crew"
-   - Process: (select later)
+   - Process: Sequential
 
-2. In Crew canvas:
-   - Drag "Researcher" from agent library
-   - Drag "Business Analyst" from agent library
-   - Drag "Report Writer" from agent library
-   - Drag tasks and connect to agents
-   
-3. Set Process Mode:
-   - Toggle between Sequential / Hierarchical
-   - Visual representation changes
+2. On canvas, drag "Researcher" from Agents onto Crew
+3. Drag "Business Analyst" onto Crew
+4. Drag tasks onto Crew
+5. Set Process Mode in crew header
 
-4. Save → Crew assembled from pre-existing components
+Result: Crew assembled from pre-existing components
 ```
 
 #### Key Principle
@@ -207,19 +184,15 @@ Result: Task existed before agent was created!
 | `name` | string | Tool name (unique) |
 | `description` | string | What the tool does |
 | `type` | enum | `decorator` / `basetool` / `mcp` / `http` |
-| `code` | text | Python code for the tool |
-| `input_schema` | JSON | Pydantic input schema |
-| `output_schema` | JSON | Pydantic output schema |
-| `is_active` | boolean | Enable/disable |
-| `version` | integer | Version number |
+| `agents` | string[] | Names of linked agents (inverse relation) |
 | `created_at` | timestamp | Creation time |
 | `updated_at` | timestamp | Last update |
 
 **UI Operations**:
-- Create tool via code editor
-- Create tool via form builder
-- Import from crewai_tools library
-- Test tool in sandbox
+- Create tool via modal form
+- Edit tool via modal
+- Link to agents via drag-drop (Tool → Agent badge)
+- Remove link via × button in agent modal
 
 ### 2. Agent Entity
 
@@ -230,26 +203,18 @@ Result: Task existed before agent was created!
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | UUID | Unique identifier |
-| `name` | string | Agent name |
+| `name` | string | Agent name (unique key in store) |
 | `role` | string | Agent's role description |
 | `goal` | string | Agent's objective |
 | `backstory` | text | Persona context |
-| `llm_provider` | enum | `openai` / `anthropic` / `ollama` / etc |
-| `llm_model` | string | Model name (e.g., gpt-4o) |
-| `llm_config` | JSON | temperature, max_tokens, etc |
-| `tools` | UUID[] | References to Tool entities |
+| `tools` | string[] | Names of linked tools |
 | `verbose` | boolean | Enable verbose logging |
-| ` Allow_delegation` | boolean | Can delegate tasks |
-| `max_iterations` | integer | Max execution loops |
-| `is_template` | boolean | Template for cloning |
-| `version` | integer | Version number |
 
 **UI Operations**:
-- Create via form
-- Clone existing agent
-- Import from repository
-- Connect tools (drag-drop)
-- Test agent standalone
+- Create via sidebar [+] button → modal form
+- Edit via double-click sidebar item or click badge on canvas
+- Link tools via drag-drop (Tool → Agent badge)
+- Remove tool link via × in modal
 
 ### 3. Task Entity
 
@@ -262,23 +227,14 @@ Result: Task existed before agent was created!
 | `id` | UUID | Unique identifier |
 | `title` | string | Task title |
 | `description` | text | Detailed instructions |
-| `expected_output` | text | What constitutes completion |
-| `agent_id` | UUID | Reference to Agent entity |
-| `tools` | UUID[] | Additional tools for this task |
-| `context_tasks` | UUID[] | Tasks that must complete first |
-| `async_execution` | boolean | Run in parallel |
-| `output_format` | enum | `text` / `json` / `pydantic` |
-| `pydantic_model` | JSON | Pydantic model for output |
-| `priority` | enum | `low` / `normal` / `high` |
-| `timeout_seconds` | integer | Max execution time |
-| `version` | integer | Version number |
+| `agent` | string | Name of assigned agent (null if unassigned) |
+| `context` | string[] | Names of dependent tasks |
 
 **UI Operations**:
-- Create via form
-- Connect agent (dropdown/search)
-- Connect context tasks (visual line)
-- Define output format
-- Preview description
+- Create via sidebar [+] button → modal form
+- Edit via double-click sidebar item or click badge on canvas
+- Assign agent via modal [+ Assign Agent] button
+- Add dependency via modal [+ Add Dependency]
 
 ### 4. Crew Entity
 
@@ -290,30 +246,18 @@ Result: Task existed before agent was created!
 |-------|------|-------------|
 | `id` | UUID | Unique identifier |
 | `name` | string | Crew name |
-| `description` | text | Crew purpose |
 | `process` | enum | `sequential` / `hierarchical` |
-| `verbose` | integer | Log level (0-3) |
-| `agents` | UUID[] | References to Agent entities |
-| `tasks` | UUID[] | References to Task entities |
-| `manager_agent_id` | UUID | Manager for hierarchical |
-| `memory` | boolean | Enable crew memory |
-| `memory_config` | JSON | Memory settings |
-| `cache` | boolean | Enable caching |
-| `triggers` | UUID[] | Triggers that activate this crew |
-| `output_format` | enum | How to return results |
-| `can_trigger_other_crews` | boolean | Enable crew-to-crew chaining |
-| `trigger_chain_on` | enum | `completed` / `failed` / `always` |
-| `output_fields` | JSON | Define output fields for chaining |
-| `is_active` | boolean | Enable/disable |
-| `version` | integer | Version number |
+| `agents` | string[] | Names of agents in this crew |
+| `tasks` | string[] | Names of tasks in this crew |
+| `x` | number | Canvas X position |
+| `y` | number | Canvas Y position |
 
 **UI Operations**:
-- Compose via drag-drop
-- Connect agents/tasks visually
-- Set execution process
-- Connect triggers
-- Run manually
-- View execution history
+- Create via sidebar [+] button → modal form
+- Edit via click on crew node (not on badge/header)
+- Add agents/tasks via drag-drop from sidebar
+- Remove via × button on badges
+- Toggle process mode via dropdown in edit modal
 
 ---
 
@@ -467,133 +411,6 @@ trigger = Trigger(
 - **Conditional**: If Crew1 succeeds → Crew2, if fails → Crew3
 - **Fan-out**: Crew1 triggers multiple crews in parallel
 
-**Supported Chain Combinations:**
-| Source Crew | → | Triggered Crew |
-|-------------|---|---------------|
-| Sequential | → | Sequential |
-| Sequential | → | Hierarchical |
-| Hierarchical | → | Sequential |
-| Hierarchical | → | Hierarchical |
-
-### Crew-to-Crew Chain Visual
-
-In the canvas, crew chains look like:
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│  CREW CHAIN EDITOR                                                    │
-├───────────────────────────────────────────────────────────────────────┤
-│                                                                       │
-│   [CREW 1: Research ] ────⚡completed────────► [CREW 2: Analysis]   │
-│        ▼                                                     ▼        │
-│   ┌─────────────────┐                           ┌─────────────┐ │
-│   │ Process: seq ▼  │                           │ Process:    │ │
-│   │ [1] Research    │                           │   hierar-    │ │
-│   │ [2] Summarize   │                           │   chical ▼   │ │
-│   └─────────────────┘                           └──────┬──────┘ │
-│                                              │        │
-│                                              ▼        ▼        │
-│                                        ┌─────────┐  ┌──────┐│
-│                                        │ Crew 3A │  │Crew3B││  (parallel)
-│                                        │ReportWr│  │Notifr││
-│                                        └────────┘  └──────┘│
-│                                                                       │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-**Chain Line Styling:**
-| Event Type | Line Style | Color |
-|------------|-----------|-------|
-| `completed` | Solid → arrow | Green |
-| `failed` | Dashed → arrow | Red |
-| `started` | Dotted → arrow | Blue |
-
-**Chain Modal:**
-```
-┌─────────────────────────────────────┐
-│  CHAIN CONFIGURATION                 │
-├─────────────────────────────────────┤
-│                                     │
-│  When [CREW 1: Research]           │
-│  ┌──────────────────────────────┐  │
-│  │ ✓ completes normally          │  │
-│  │ ○ fails                   │  │
-│  │ ○ starts                 │  │
-│  └──────────────────────────────┘  │
-│                                     │
-│  Then trigger [CREW 2: Analysis]  │
-│                                     │
-│  ─────────────────────────────────   │
-│                                     │
-│  Map output:                        │
-│  ├─ research_results → input.topic │
-│  ├─ summary → input.summary        │
-│  └─ new field → input.custom      │
-│                                     │
-│  Options:                          │
-│  ├─ ☐ Continue if source fails   │
-│  ├─ ☐ Wait for completion       │
-│  └─ ☐ Pass output as-is        │
-│                                     │
-│  [Cancel]  [Save Chain]           │
-└─────────────────────────────────────┘
-```
-
-### Event Condition Builder
-
-UI for building conditions without code:
-
-```
-┌────────────────────────────────────────────────────────┐
-│  CONDITION BUILDER                                     │
-├────────────────────────────────────────────────────────┤
-│                                                        │
-│  WHEN [event.field] [operator] [value]                 │
-│                                                        │
-│  Field:    [dropdown ▼] event.amount                   │
-│  Operator: [dropdown ▼] >                             │
-│  Value:    [input _____] 1000                         │
-│                                                        │
-│  ────���────────────────────────────────                │
-│                                                        │
-│  AND/OR [add condition ▼]                             │
-│                                                        │
-│  [+ Add Group] [+ Add Condition]                      │
-│                                                        │
-│  PREVIEW:                                              │
-│  event.amount > 1000 AND event.currency == "USD"    │
-└────────────────────────────────────────────────────────┘
-```
-
-### Event Queue Management
-
-UI to see all waiting triggers:
-
-```
-┌────────────────────────────────────────────────────────────────────┐
-│  TRIGGER DASHBOARD                                         │
-├──────────────────────────────────────────────────────────────┤
-│                                                            │
-│  ┌────────────────┐ ┌────────────────┐ ┌───────────────┐  │
-│  │ ACTIVE (12)    │ │ WAITING (18)   │ │  FAILED (2)   │  │
-│  └────────────────┘ └────────────────┘ └───────────────┘  │
-│                                                            │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │ WAITING TRIGGERS                                      │   │
-│  ├───────────────┬──────────────┬─────────┬───────────┤   │
-│  │ Name          │ Event Source │ Crew    │ Status    │   │
-│  ├───────────────┼──────────────┼─────────┼───────────┤   │
-│  │ New Lead      │ database     │ Sales..│ waiting  │   │
-│  │ Payment OK   │ webhook      │ Billi..│ waiting  │   │
-│  │ Daily Report │ cron         │ Repo...│ waiting  │   │
-│  │ Order New    │ queue       │ Fullf..│ waiting  │   │
-│  │ ...         │ ...         │ ...    │ waiting  │   │
-│  └───────────────┴──────────────┴─────────┴───────────┘   │
-│                                                            │
-│  [+ Add Trigger]  [↻ Refresh]   [▶ Enable All]            │
-└────────────────────────────────────────────────────────────┘
-```
-
 ---
 
 ## UI/UX Requirements
@@ -605,418 +422,250 @@ UI to see all waiting triggers:
 
 ### Page Structure
 
-1. **Dashboard** - Overview, quick stats, recent runs
-2. **Tools** - Tool library (visual cards on canvas)
-3. **Agents** - Agent library (visual cards on canvas)
-4. **Tasks** - Task library (visual cards on canvas)
-5. **Crews** - Crew composition (main mindmap workspace)
-6. **Triggers** - Event/trigger management (flow view)
-7. **Executions** - Run history and logs
-8. **Settings** - System configuration
+1. **Main Canvas View** - Mindmap/miro-style visual editing (PRIMARY)
+2. **Sidebar** - Entity library with collapsible sections
+3. **Modals** - Create/edit forms, link selection
+4. **Help Panel** - Usage instructions overlay
 
 ---
 
-### Miro/Mindmap-Style UI Specification
+### Implemented UI Specification
 
-#### Main Canvas View (No Code Visible)
-
-```
-┌──────────────────────────────────────────────────────────────────────────────────────────────┐
-│  🧠 CREW EDITOR - Market Analysis Crew                         [+ Add] [↻] [💾] [📤 Export] │
-├──────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                       │
-│                    ┌─────────────────┐                                                  │
-│                    │   MANAGER AGENT  │                                                  │
-│                    │   ┌─────────┐   │                                                  │
-│                    │   │ Coord-  │   │                                                  │
-│                    │   │ inator │   │                                                  │
-│                    │   └─────────┘   │                                                  │
-│                    └────────┬────────┘                                                  │
-│                             │                                                           │
-│           ┌─────────────────┼─────────────────┐                                              │
-│           │                 │                 │                                              │
-│           ▼                 ▼                 ▼                                              │
-│    ┌────────────┐   ┌────────────┐   ┌────────────┐                                   │
-│    │  AGENT   │   │  AGENT   │   │  AGENT    │                                   │
-│    │Researcher │   │ Analyst  │   │  Writer   │                                   │
-│    │  🔍     │   │  📊     │   │  ✍️      │                                   │
-│    └────┬─────┘   └────┬─────┘   └────┬─────┘                                   │
-│         │               │               │                                                │
-│         ▼               ▼               ▼                                                │
-│    ┌─────────┐   ┌─────────┐   ┌─────────┐                                           │
-│    │  TASK  │   │  TASK  │   │  TASK   │                                           │
-│    │Research │   │Analyze │   │ Write  │                                           │
-│    │ Market │   │  Data  │   │ Report │                                           │
-│    └─────────┘   └─────────┘   └─────────┘                                           │
-│                                                                                       │
-│  ────│───────────────────────────────────────────────────────────────────────────│───────     │
-│       │ PROCESS MODE:  ▶ Sequential    ○ Hierarchical                    [▶ Run] │     │
-│       └───────────────────────────────────────────────────────────────────────────┘        │
-└──────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-#### Process Mode Toggle (Critical!)
-
-Located at bottom of canvas, always visible:
+#### Header Bar
 
 ```
-┌─────────────────────────────────────────────┐
-│  EXECUTION MODE                            │
-├─────────────────────────────────────────────┤
-│                                          │
-│  ┌──────────────────┐  ┌─────────────┐  │
-│  │  ▶ Sequential  │  │ Hierarchical │  │
-│  ├────────────────┤  ├─────────────┤  │
-│  │ Tasks run in   │  │ Manager    │  │
-│  │ order        │  │ coordinates │  │
-│  │ A → B → C   │  │ A, B, C   │  │
-│  │              │  │            │  │
-│  │ ● Selected  │  │ ○ Off      │  │
-│  └──────────────┘  └─────���─��─────┘  │
-└─────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│  🚀 CrewAI WebUI                        [? Help] [▶ Run]  │
+└────────────────────────────────────────────────────────────┘
 ```
 
-**Sequential Mode Visual:**
-```
-  [Task 1] → [Task 2] → [Task 3]
-     │           │           │
-     ▼           ▼           ▼
-   Agent A    Agent B    Agent C
-```
+- Logo/title on left
+- Help button toggles help overlay
+- Run button executes selected crew
 
-**Hierarchical Mode Visual:**
-```
-        ┌──────────┐
-        │ Manager │
-        │ Agent  │
-        └────┬───┘
-     ┌──────┼──────┬──────┐
-     ▼     ▼     ▼
-  Agent  Agent  Agent
-   A      B      C
-  Task   Task   Task
-```
-
-### Execution Mode = UI Behavior
-
-The selected execution mode **directly affects drag-drop and line drawing behavior**:
-
-#### Sequential Mode
-
-| UI Element | Behavior |
-|-----------|---------|
-| **Drag Task** | Auto-order based on drop position (left-to-right = execution order) |
-| **Connecting Line** | Solid arrow → shows dependency direction |
-| **Drop Zone** | Highlights where task will insert in sequence |
-| **Task Order** | User explicitly controls order via drag position |
-| **Visual Constraint** | Can reorder tasks by dragging |
-| **Auto-numbering** | Tasks show execution order: [1], [2], [3] |
-
-**Canvas Example (Sequential):**
-```
-  [1] ───────→ [2] ───────→ [3]
-  Research     Analyze      Write
-     │            │           │
-     ▼            ▼           ▼
-  Researcher  Analyst     Writer
-```
-
-- Lines are **solid**
-- Order visible via **numbers**
-- Can **drag to reorder** tasks in sequence
-
-#### Hierarchical Mode
-
-| UI Element | Behavior |
-|-----------|---------|
-| **Manager Node** | Required - shown at top, special highlight |
-| **Connect to Manager** | Tasks connect TO manager, not to each other |
-| **Sub-agents** | Auto-connected to manager (no manual linking needed) |
-| **Drop Zone** | Only drops as sub-agent under manager |
-| **Visual Constraint** | Cannot reorder (manager handles) |
-| **Parallel Indicators** | Tasks under same agent can run parallel |
-
-**Canvas Example (Hierarchical):**
-```
-        ┌─────────────┐
-        │ ★ Manager  │ ← Special star icon, purple border
-        │  Coordinate│
-        └─────┬─────┘
-     ┌────────┼────────┬────────┐
-     │        │        │        │
-     ▼        ▼        ▼
-  Agent    Agent    Agent
-  Resrch   Analyst  Writer   ← All linked to manager
-     │        │        │
-     ▼        ▼        ▼
-  Task     Task     Task
-```
-
-- **Manager node** has special styling (purple, star)
-- **No direct lines** between tasks
-- **Manager controls** delegation automatically
-- **Adding new agent**: automatically slots under manager
-
-#### Mode Switching
+#### Sidebar (Left Panel)
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  SWITCHING MODES                                        │
-├────────────────��────────────────────────────────────────────┤
-│                                                       │
-│  Sequential → Hierarchical:                           │
-│  - Prompts: "Select Manager Agent"                     │
-│  - Converts task order links to sub-agent tree        │
-│  - Existing connections preserved                    │
-│                                                       │
-│  Hierarchical → Sequential:                          │
-│  - Prompts: "Confirm task order"                   │
-│  - Converts tree structure to ordered list          │
-│  - Tasks auto-numbered [1, 2, 3]                │
-│                                                       │
-│  ⚠️  May lose some flexibility when converting     │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────┐
+│  🔍 Search entities...  │
+├─────────────────────────┤
+│  ▼ 🔧 Tools (3)    [+]  │
+│    ├─ web_search        │
+│    ├─ pdf_reader        │
+│    └─ calculator        │
+│                         │
+│  ▼ 👤 Agents (4)    [+]  │
+│    ├─ Research          │
+│    ├─ Analyze           │
+│    └─ ...               │
+│                         │
+│  ▼ 📋 Tasks (4)    [+]  │
+│  ▼ 🚀 Crews (2)    [+]  │
+└─────────────────────────┘
 ```
 
-#### Visual Differences Summary
+**Features:**
+- Search/filter input at top
+- Collapsible sections (click header to toggle ▼/▶)
+- Entity count in parentheses
+- [+] button to create new entity
+- Sidebar items are draggable to canvas
 
-| Aspect | Sequential | Hierarchical |
-|--------|------------|---------------|
-| **Lines** | Solid → arrows | Lines from manager |
-| **Numbering** | [1] [2] [3] shown | No numbers (manager-controlled) |
-| **Task Position** | User controls order | Manager controls parallel/sequence |
-| **Manager Node** | Optional/ignored | Required, special styling |
-| **Drag Constraint** | Reorder by position | Drop under manager only |
+**Drag Behavior:**
+- Sidebar items are `draggable="true"`
+- `dragstart` event captures type and name
+- `dragend` event cleans up drag state
 
----
-
-#### Visual Nodes (No Code Forms)
-
-**Tool Node:**
-```
-┌──────────────────┐
-│    🔧 TOOL      │
-│  Web Search     │
-├──────────────────┤
-│  🔗 Linked to:   │
-│  • Research Agent│
-│  • Data Agent   │
-└──────────────────┘
-```
-
-**Agent Node:**
-```
-┌──────────────────┐
-│    👤 AGENT    │
-│  Researcher    │
-├──────────────────┤
-│  Role: Market  │
-│       Researcher│
-│  ──────────────│
-│  Tools: 3     │
-│  [🔧🔍📄]    │
-│  ──────────────│
-│  LLM: GPT-4o  │
-└──────────────────┘
-        │
-        ▼ (drag to connect)
-```
-
-**Task Node:**
-```
-┌──────────────────┐
-│    📋 TASK     │
-│  Research      │
-│  Market       │
-├──────────────────┤
-│  → Assigned to: │
-│    Researcher │
-│  ────────────│
-│  Expected:    │
-│  Market Report│
-└──────────────────┘
-```
-
-**Crew Node:**
-```
-┌────────────────────┐
-│   🚀 CREW       │
-│  Market Team    │
-├──────────────────┤
-│  Process: seq │
-│  ────────────│
-│  Agents: 3   │
-│  Tasks: 3    │
-│  ────────────│
-│  Triggers: 2  │
-│  [⚡📅🔗]   │
-└────────────────────┘
-         │
-         ▼ (can fork to another crew)
-```
-
----
-
-#### Connection Interactions
+#### Canvas (Main Area)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  HOW TO CONNECT (Drag & Drop)                                    │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Tool → Agent:                                                   │
-│  1. Click tool node                                             │
-│  2. Drag from 🔗 port                                         │
-│  3. Drop on agent node                                          │
-│  4. Line appears:  🔧───────→👤                               │
-│                                                                  │
-│  Agent → Task:                                                  │
-│  1. Click agent node                                           │
-│  2. Drag from 📋 port                                          │
-│  3. Drop on task node                                           │
-│  4. Line appears:  👤���──────→📋                              │
-│                                                                  │
-│  Task ↔ Task (context):                                          │
-│  1. Click first task                                            │
-│  2. Drag from → port                                           │
-│  3. Drop on second task                                         │
-│  4. Line appears:  📋───────→📋 (dashed)                   │
-│                                                                  │
-│  Crew → Trigger:                                               │
-│  1. Click crew node                                            │
-│  2. Drag from ⚡ port                                          │
-│  3. Drop on trigger hub                                         │
-│  4. Line appears:  🚀───────⚡                              │
+│                                                                 │
+│   ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  │
+│   ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  │
+│   ·  ·  ┌─────────────────────────────────────────┐  ·  ·  ·  │
+│   ·  ·  │ 🚀 Market Team                         │  ·  ·  ·  │
+│   ·  ·  │ [▶ Sequential]                        │  ·  ·  ·  │
+│   ·  ·  ├─────────────────────────────────────────┤  ·  ·  ·  │
+│   ·  ·  │ Agents                                │  ·  ·  ·  │
+│   ·  ·  │ ┌────────────┐ ┌────────────┐      │  ·  ·  ·  │
+│   ·  ·  │ │👤 Research │ │👤 Analyze  │      │  ·  ·  ·  │
+│   ·  ·  │ │ 🔧 web     │ │ 🔧 pdf     │      │  ·  ·  ·  │
+│   ·  ·  │ └────────────┘ └────────────┘      │  ·  ·  ·  │
+│   ·  ·  │                                      │  ·  ·  ·  │
+│   ·  ·  │ Tasks                                │  ·  ·  ·  │
+│   ·  ·  │ 📋 1. Research  📋 2. Analyze       │  ·  ·  ·  │
+│   ·  ·  └─────────────────────────────────────────┘  ·  ·  ·
+│   ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·
 └─────────────────────────────────────────────────────────────────┘
 ```
 
----
+**Background:** Dot grid pattern (radial-gradient, 40px spacing)
 
-#### Sidebar Library (Collapsible)
+**Panning:**
+- Click and drag on canvas background (not on nodes)
+- Tracks `offsetX`, `offsetY` on canvas inner transform
 
+**Crew Nodes:**
+- Positioned absolutely with `left`, `top`
+- Header area (colored) = drag handle (only header, not entire node)
+- Body contains Agents and Tasks sections
+- Click node (not badge) → opens edit modal
+- Click agent/task badge → opens respective edit modal
+- × button on badges removes from crew
+
+**Agent Badge Layout:**
 ```
-┌─────────────────────────────────────────┐
-│  📚 LIBRARY              [≡] Collapse │
-├─────────────────────────────────────────┤
-│                                          │
-│  🔧 TOOLS (12)                        │
-│  ├─ Web Search                      │
-│  ├─ PDF Reader                    │
-│  ├─ Calculator                  │
-│  └─ ...                          │
-│                                          │
-│  👤 AGENTS (8)                         │
-│  ├─ Researcher                  │
-│  ├─ Analyst                   │
-│  ├─ Writer                   │
-│  └─ ...                         │
-│                                          │
-│  📋 TASKS (15)                         │
-│  ├─ Research Market            │
-│  ├─ Analyze Data            │
-│  ├─ Write Report           │
-│  └─ ...                         │
-│                                          │
-│  🚀 CREWS (5)                          │
-│  ├─ Market Analysis         │
-│  ├─ Content Pipeline     │
-│  └─ ...                         │
-│                                          │
-│  ⚡ TRIGGERS (3)                        │
-│  ├─ New Lead               │
-│  ├─ Daily Report          │
-│  └─ ...                          │
-└─────────────────────────────────────────┘
+┌─────────────────────────┐
+│ 👤 AgentName      [×]  │
+│   🔧 tool1 🔧 tool2   │  (if tools linked)
+└─────────────────────────┘
 ```
 
-**How to add from library:**
-1. Find item in sidebar
-2. Drag onto canvas
-3. Drop anywhere
-4. Node created from template
+- Two-line layout: name + tools below
+- Tools shown as small colored spans
 
----
-
-#### Node Context Menu (Right-click)
-
+**Task Badge Layout:**
 ```
-┌─────────────────────────────────────────┐
-│  Right-click on AGENT node               │
-├─────────────────────────────────────────┤
-│                                         │
-│  ✏️ Edit Details                      │
-│  📋 Create Task (linked)               │
-│  🔗 Add Tool                        │
-│  📋 Duplicate Agent                │
-│  📤 Export as Template             │
-│  ─────────────────                  │
-│  🗑️ Delete                        │
-└─────────────────────────────────────────┘
+📋 1. TaskName [×]
 ```
+- Numbered by position in crew.tasks array
+- × button removes from crew
 
----
+#### Drag & Drop Behaviors
 
-#### Floating Toolbar
+**From Sidebar to Canvas:**
+| Drag | Drop Target | Action |
+|------|-------------|--------|
+| Tool | Canvas (empty) | No action |
+| Tool | Agent badge | Link tool to agent |
+| Agent | Crew node | Add agent to crew |
+| Task | Crew node | Add task to crew |
+| Crew | Canvas (empty) | Reposition crew |
 
+**Implementation Notes:**
+- `dragover` on crew node highlights with border
+- `drop` on crew node adds entity to crew
+- Tool→Agent badge drop links tool to agent (updates both store.tools and store.agents)
+- `dragend` on document resets `draggedData = null` and clears highlights
+
+#### Process Mode
+
+**Sequential (default):**
+- Tasks run left-to-right in order
+- Badge shows: ▶ Sequential
+
+**Hierarchical:**
+- Manager coordinates agents
+- Badge shows: ⭐ Hierarchical
+- Node has purple border instead of red
+
+#### Modal Dialogs
+
+**Create Modal:**
 ```
-┌─────────────────────────────────────────┐
-│  [+ Node ▼]  [🤝 Connect]  [↩ Undo]    │
-│             [↪ Redo]  [🔍 Zoom]       │
-├─────────────────────────────────────────┤
-│                                          │
-│  [+ Node ▼] shows:                      │
-│  ├─ + Tool                           │
-│  ├─ + Agent                         │
-│  ├─ + Task                         │
-│  ├─ + Crew                        │
-│  └─ + Trigger                     │
-└─────────────────────────────────────────┘
-```
-
----
-
-#### No Code Visible - Even for Tools
-
-```
-┌─────────────────────────────────────────────┐
-│  TOOL EDITOR (Modal)                       │
-├─────────────────────────────────────────────┤
-│                                            │
-│  Name:  [________________]                   │
-│                                            │
-│  Description:                             │
-│  [________________________________]       │
-│                                            │
-│  ┌─────────────────────────────────────┐    │
-│  │  VISUAL BUILDER                     │    │
-│  │                                     │    │
-│  │  Input:                            │    │
-│  │  [query: String ________]         │    │
-│  │             [+ Add Input]         │    │
-│  │                                     │    │
-│  │  Output:                           │    │
-│  │  [results: List ________]       ���    │
-│  │                                     │    │
-│  │  ┌────────────────────────┐   │    │
-│  │  │ ██ CODE PREVIEW  │   │    │
-│  │  │ (auto-generated) │   │    │
-│  │  └────────────────────────┘   │    │
-│  └─────────────────────────────────────┘     │
-│                                            │
-│  [Cancel]  [Test]  [Save]                 │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────┐
+│  Create Tool / Agent / Task / Crew│
+├─────────────────────────────────┤
+│  [form fields based on type]   │
+│                                 │
+│  [Cancel]              [Create] │
+└─────────────────────────────────┘
 ```
 
----
+**Edit Modal (Agent example):**
+```
+┌─────────────────────────────────┐
+│  Edit Agent                       │
+├─────────────────────────────────┤
+│  Name: [___________]            │
+│  Role: [___________]            │
+│  Goal: [___________]            │
+│  Backstory: [__________]        │
+│                                 │
+│  Tools (click × to remove)     │
+│  ┌──────────────────────────┐   │
+│  │ 🔧 web_search [×]        │   │
+│  │ 🔧 calculator [×]        │   │
+│  └──────────────────────────┘   │
+│  [+ Add Tool]                   │
+│                                 │
+│  [Cancel]              [Save]   │
+└─────────────────────────────────┘
+```
 
-#### Required Views
+**Link Modal:**
+```
+┌─────────────────────────────────┐
+│  Add Agent                        │
+├─────────────────────────────────┤
+│  ┌──────────────────────────┐   │
+│  │ 👤 Research              │   │
+│  └──────────────────────────┘   │
+│  ┌──────────────────────────┐   │
+│  │ 👤 Analyze               │   │
+│  └──────────────────────────┘   │
+│                                 │
+│  (Cancel to close)             │
+└─────────────────────────────────┘
+```
 
-1. **Canvas View** - Mindmap/miro-style visual editing (MAIN)
-2. **List View** - Compact table (for searching)
-3. **Detail Modal** - Quick edit (not full-page form)
-4. **Test View** - Sandbox execution
-4. **Test View** - Sandbox execution
-5. **History View** - Execution logs
+**Modal Event Delegation:**
+- Modal body contains dynamically rendered badges
+- `click` event on modal body uses `e.target.closest()` to find remove buttons
+- `data-action` attributes distinguish action types
+- After action, modal refreshes via `openEditModal()`
+
+#### Help Panel
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│  🚀 CrewAI WebUI Help                                      │
+│                                                             │
+│  Sidebar                                                   │
+│  • Click section headers to collapse/expand                │
+│  • Use search to filter entities                          │
+│  • Drag entities from sidebar onto canvas                 │
+│  • Click + to create new entity                           │
+│                                                             │
+│  Canvas                                                    │
+│  • Drag canvas background to pan                          │
+│  • Drag crew nodes to reposition (header only)            │
+│  • Click crew to view/edit                                │
+│  • Drag entity onto crew to add it                       │
+│                                                             │
+│  Linking Entities                                          │
+│  • Drag Tool onto Agent → links tool to agent             │
+│  • Drag Task onto Agent → assigns agent to task           │
+│  • Drag Task onto Task → creates dependency               │
+│  • Click badges in modal to remove links                  │
+│                                                             │
+│  Process Modes                                             │
+│  • Sequential: Tasks run left-to-right                    │
+│  • Hierarchical: Manager coordinates agents               │
+│                                                             │
+│  [Close]                                                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| Escape | Close modal or help panel |
+
+#### Click Interactions
+
+**Single Click:**
+- Click crew header → drag to move
+- Click crew body (not badge) → open crew edit modal
+- Click agent badge → open agent edit modal
+- Click task badge → open task edit modal
+- Click × on badge → remove from crew
+
+**Double Click:**
+- Double-click sidebar item → open edit modal
 
 ---
 
@@ -1031,7 +680,8 @@ GET    /api/tools             - List tools
 GET    /api/tools/:id         - Get tool
 PUT    /api/tools/:id         - Update tool
 DELETE /api/tools/:id        - Delete tool
-POST   /api/tools/:id/test   - Test tool
+POST   /api/tools/:id/agents - Link tool to agent
+DELETE /api/tools/:id/agents/:agentId - Unlink tool from agent
 
 # Agents
 POST   /api/agents            - Create agent
@@ -1040,6 +690,7 @@ GET    /api/agents/:id        - Get agent
 PUT    /api/agents/:id       - Update agent
 DELETE /api/agents/:id      - Delete agent
 POST   /api/agents/:id/tools - Add tool to agent
+DELETE /api/agents/:id/tools/:toolId - Remove tool from agent
 
 # Tasks
 POST   /api/tasks             - Create task
@@ -1048,321 +699,182 @@ GET    /api/tasks/:id        - Get task
 PUT    /api/tasks/:id        - Update task
 DELETE /api/tasks/:id       - Delete task
 POST   /api/tasks/:id/agent - Assign agent
+DELETE /api/tasks/:id/agent - Unassign agent
+POST   /api/tasks/:id/context - Add context task
+DELETE /api/tasks/:id/context/:contextId - Remove context task
 
 # Crews
 POST   /api/crews            - Create crew
 GET    /api/crews            - List crews
 GET    /api/crews/:id        - Get crew
 PUT    /api/crews/:id       - Update crew
-DELETE /api/crews/:id       - Delete crew
+DELETE /api/crews/:id      - Delete crew
+POST   /api/crews/:id/agents - Add agent to crew
+DELETE /api/crews/:id/agents/:agentId - Remove agent from crew
+POST   /api/crews/:id/tasks - Add task to crew
+DELETE /api/crews/:id/tasks/:taskId - Remove task from crew
 POST   /api/crews/:id/run   - Run crew
-POST   /api/crews/:id/kickoff - Alias for run
 
 # Triggers
 POST   /api/triggers        - Create trigger
 GET    /api/triggers        - List triggers
-GET    /api/triggers/:id   - Get trigger
+GET    /api/triggers/:id    - Get trigger
 PUT    /api/triggers/:id    - Update trigger
 DELETE /api/triggers/:id   - Delete trigger
-POST   /api/triggers/:id/enable  - Enable
-POST   /api/triggers/:id/disable - Disable
-
-# Executions
-GET    /api/executions       - List executions
-GET    /api/executions/:id  - Get execution details
-```
-
-### Webhook Endpoints
-
-```
-POST /webhooks/:trigger_name  - External trigger
-POST /webhooks/generic        - Generic webhook
+POST   /api/triggers/:id/enable - Enable trigger
+POST   /api/triggers/:id/disable - Disable trigger
 ```
 
 ---
 
 ## Data Models
 
-### Database Schema (PostgreSQL)
+### Store Structure (Frontend State)
 
-```sql
--- Tools table
-CREATE TABLE tools (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) UNIQUE NOT NULL,
-    description TEXT,
-    type VARCHAR(50) NOT NULL,
-    code TEXT,
-    input_schema JSONB,
-    output_schema JSONB,
-    is_active BOOLEAN DEFAULT true,
-    version INTEGER DEFAULT 1,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Agents table
-CREATE TABLE agents (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    role TEXT NOT NULL,
-    goal TEXT NOT NULL,
-    backstory TEXT,
-    llm_provider VARCHAR(50),
-    llm_model VARCHAR(100),
-    llm_config JSONB,
-    tools UUID[],
-    verbose BOOLEAN DEFAULT false,
-    allow_delegation BOOLEAN DEFAULT false,
-    max_iterations INTEGER DEFAULT 10,
-    is_template BOOLEAN DEFAULT false,
-    version INTEGER DEFAULT 1,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Tasks table
-CREATE TABLE tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    title VARCHAR(255) NOT NULL,
-    description TEXT NOT NULL,
-    expected_output TEXT,
-    agent_id UUID REFERENCES agents(id),
-    tools UUID[],
-    context_tasks UUID[],
-    async_execution BOOLEAN DEFAULT false,
-    output_format VARCHAR(50) DEFAULT 'text',
-    pydantic_model JSONB,
-    priority VARCHAR(20) DEFAULT 'normal',
-    timeout_seconds INTEGER DEFAULT 300,
-    version INTEGER DEFAULT 1,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Crews table
-CREATE TABLE crews (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    process VARCHAR(50) DEFAULT 'sequential',
-    verbose INTEGER DEFAULT 1,
-    agents UUID[],
-    tasks UUID[],
-    manager_agent_id UUID REFERENCES agents(id),
-    memory BOOLEAN DEFAULT false,
-    memory_config JSONB,
-    cache BOOLEAN DEFAULT true,
-    triggers UUID[],
-    output_format VARCHAR(50) DEFAULT 'text',
-    is_active BOOLEAN DEFAULT true,
-    version INTEGER DEFAULT 1,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Triggers table
-CREATE TABLE triggers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    type VARCHAR(50) NOT NULL,
-    event_source VARCHAR(50) NOT NULL,
-    event_type VARCHAR(100),
-    filter_condition JSONB,
-    crew_id UUID REFERENCES crews(id),
-    input_mapping JSONB,
-    priority INTEGER DEFAULT 0,
-    enabled BOOLEAN DEFAULT true,
-    max_concurrent INTEGER DEFAULT 1,
-    cooldown_seconds INTEGER DEFAULT 60,
-    last_triggered_at TIMESTAMP,
-    trigger_count INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Executions table
-CREATE TABLE executions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    crew_id UUID REFERENCES crews(id),
-    trigger_id UUID REFERENCES triggers(id),
-    status VARCHAR(50) NOT NULL,
-    input_data JSONB,
-    output_data JSONB,
-    error_message TEXT,
-    started_at TIMESTAMP NOT NULL,
-    completed_at TIMESTAMP,
-    duration_seconds INTEGER,
-    token_usage JSONB,
-    created_at TIMESTAMP DEFAULT NOW()
-);
+```javascript
+const store = {
+    tools: {
+        'tool_name': {
+            name: 'tool_name',
+            description: 'description',
+            type: 'decorator' | 'basetool' | 'mcp' | 'http',
+            agents: ['agent_name', ...]  // inverse relation
+        },
+        // ...
+    },
+    agents: {
+        'agent_name': {
+            name: 'agent_name',
+            role: 'role description',
+            goal: 'agent objective',
+            backstory: 'persona context',
+            tools: ['tool_name', ...]
+        },
+        // ...
+    },
+    tasks: {
+        'task_title': {
+            title: 'task_title',
+            description: 'task description',
+            agent: 'agent_name' | null,
+            context: ['other_task_title', ...]
+        },
+        // ...
+    },
+    crews: {
+        'crew_name': {
+            name: 'crew_name',
+            process: 'sequential' | 'hierarchical',
+            agents: ['agent_name', ...],
+            tasks: ['task_title', ...],
+            x: 50,   // canvas position
+            y: 50
+        },
+        // ...
+    },
+    canvas: {
+        offsetX: 0,
+        offsetY: 0,
+        scale: 1
+    }
+};
 ```
 
 ---
 
 ## Workflows
 
-### Workflow 1: Create and Connect Tool → Agent → Task → Crew
+### Workflow 1: Create and Assemble a Crew
 
-```
-1. Go to Tools page
-2. Click [+ New Tool]
-3. Enter name, description
-4. Write code or use form builder
-5. Save → Tool saved to DB
+1. **Create Agents** (any order, before or after tools)
+   - Click [+] on Agents section
+   - Fill form: name, role, goal, backstory
+   - Click Create
 
-6. Go to Agents page
-7. Click [+ New Agent]
-8. Enter role, goal, backstory
-9. Select LLM provider/model
-10. Drag tool from library
-11. Save → Agent saved with tool reference
+2. **Create Tools** (any order, before or after agents)
+   - Click [+] on Tools section
+   - Fill form: name, description, type
+   - Click Create
 
-12. Go to Tasks page
-13. Click [+ New Task]
-14. Enter description, expected output
-15. Select agent from dropdown
-16. Save → Task saved with agent reference
+3. **Link Tools to Agents** (drag-drop)
+   - Drag tool from sidebar
+   - Drop on agent badge in a crew (or in agent edit modal)
+   - Both tool.agents and agent.tools updated
 
-17. Go to Crews page (canvas)
-18. Drag agent from library
-19. Drag task from library
-20. Connect task to agent (visual line)
-21. Set process (sequential/hierarchical)
-22. Save crew
-23. Click Run → Crew executes
-```
+4. **Create Tasks**
+   - Click [+] on Tasks section
+   - Fill form: title, description
+   - Optionally assign agent via [+ Assign Agent]
 
-### Workflow 2: Event-Driven Automation
+5. **Assemble Crew**
+   - Click [+] on Crews section
+   - Fill form: name, process
+   - Drag agents/tasks from sidebar onto crew node
+   - Or use [+ Add Agent] / [+ Add Task] in edit modal
 
-```
-1. Create crew (as above)
-2. Go to Triggers page
-3. Click [+ New Trigger]
-4. Enter name, description
-5. Select trigger type: Event
-6. Select event source: database
-7. Set filter: table=leads, status=new
-8. Select crew to kickoff
-9. Map event fields to crew input
-10. Save trigger
+6. **Run Crew**
+   - Click [▶ Run Crew] button
+   - In full implementation, executes selected crew
 
-11. Trigger now waits in event loop
-12. When new lead inserted:
-    - Event detected
-    - Condition evaluated
-    - Crew kicked off
-    - Execution logged
+### Workflow 2: Edit Existing Configuration
 
-13. Go to Executions page
-14. View execution history
-15. See results, logs, errors
-```
+1. **Edit Agent**
+   - Double-click agent in sidebar OR click agent badge in crew
+   - Modal opens with current values
+   - Edit fields, add/remove tools
+   - Click Save
 
-### Workflow 3: Reuse Components
+2. **Edit Task**
+   - Double-click task in sidebar OR click task badge in crew
+   - Modal opens with current values
+   - Edit fields, reassign agent, adjust dependencies
+   - Click Save
 
-```
-Scenario: Need same researcher in multiple crews
+3. **Edit Crew**
+   - Click on crew node (not on badges)
+   - Modal opens with current values
+   - Change name, process mode, add/remove agents/tasks
+   - Click Save
 
-1. Go to Agents page
-2. Find existing "Market Researcher" agent
-3. Click [Duplicate]
-4. Rename to "Competitor Research Specialist"
-5. Modify goal: "Research competitors"
-6. Save as new agent
+### Workflow 3: Manage Task Dependencies
 
-7. Go to Crews page
-8. Create new crew
-9. Drag existing tasks OR
-10. Create new tasks using new agent
-
-Result: Two crews share base agent definition,
-         but have different configurations
-```
+1. Open task edit modal
+2. Click [+ Add Dependency]
+3. Select context task from list
+4. Repeat for multiple dependencies
+5. Click × on badge to remove dependency
 
 ---
 
 ## Comparison with Existing Solutions
 
-| Feature | CrewAI Studio | Langflow | **This Project** |
-|---------|---------------|----------|------------------|
-| Visual editor | ✅ | ✅ | ✅ |
-| Drag-drop composition | ✅ | ✅ | ✅ |
-| Database persistence | ❌ | ❌ | ✅ |
-| Reusable components | Limited | Limited | **Full** |
-| Event-driven triggers | Basic | ❌ | **Advanced** |
-| 10+ concurrent triggers | ❌ | ❌ | ✅ |
-| Condition builder UI | ✅ | ✅ | ✅ |
-| Export to Python | ✅ | ✅ | ✅ |
-| Self-hosted | ❌ | ✅ | ✅ |
-| Trigger dashboard | ❌ | ❌ | ✅ |
-
-### Key Differentiators
-
-1. **Component Reuse** - Any tool/agent/task can be used in multiple crews
-2. **Event System** - 10-30+ triggers waiting simultaneously
-3. **Database First** - All components queryable and composable
-4. **Visual Composition** - Drag-drop on canvas
-5. **Full Control** - Self-hosted, no vendor lock-in
+| Feature | CrewAI Studio | Langflow | **This Builder** |
+|---------|--------------|----------|------------------|
+| Visual canvas | Limited | Yes | **Yes, Miro-style** |
+| Database persistence | No | Partial | **Yes** |
+| Flexible creation order | No | No | **Yes** |
+| Event-driven triggers | No | No | **Yes** |
+| Crew-to-crew chaining | No | No | **Yes** |
+| Per-crew process mode | No | No | **Yes** |
+| Separate reusable entities | No | Partial | **Yes** |
+| Drag-drop tool→agent | No | No | **Yes** |
+| No-code interface | Limited | Yes | **Yes** |
 
 ---
 
 ## Future Enhancements
 
-### Phase 2
-
-1. **Multi-tenant** - Support multiple organizations
-2. **Team Collaboration** - Share components across teams
-3. **Version History** - Full audit trail
-4. **A/B Testing** - Test crew variants
-
-### Phase 3
-
-1. **AI Copilot** - Natural language to build crews
-2. **Templates** - Pre-built crew templates
-3. **Marketplace** - Share/sell components
-4. **Analytics** - Performance insights
-
-### Phase 4
-
-1. **MCP Integration** - Full Model Context Protocol
-2. **Distributed Execution** - Run across multiple servers
-3. **Custom Nodes** - Plugin system for custom components
-4. **Enterprise SSO** - SAML/OAuth integration
+1. **Visual Chain Lines** - Draw lines between crews to show trigger relationships
+2. **Execution History** - View past runs with logs and outputs
+3. **Import/Export** - Save/load configurations as JSON
+4. **Team Collaboration** - Multiple users editing simultaneously
+5. **LLM Configuration UI** - Visual picker for providers/models
+6. **Output Schema Builder** - Define expected crew outputs visually
+7. **Condition Builder UI** - Point-and-click trigger condition creation
+8. **Mini-map** - Overview of large canvases
+9. **Undo/Redo** - Full history support
+10. **Keyboard Shortcuts** - Full keyboard navigation
 
 ---
 
-## Technical Stack Recommendation
-
-### Backend
-- **Framework**: FastAPI (Python) - aligns with CrewAI
-- **Database**: PostgreSQL
-- **ORM**: SQLModel or Prisma
-- **Queue**: Redis for event queue
-
-### Frontend
-- **Framework**: React or Vue.js
-- **Canvas Library**: React Flow or similar
-- **State**: Zustand or Pinia
-- **API Client**: TanStack Query
-
-### Infrastructure
-- **Container**: Docker
-- **Deployment**: Kubernetes or Railway
-- **Monitoring**: OpenTelemetry + Grafana
-
----
-
-## Summary
-
-This requirements document outlines a **database-backed visual builder** for CrewAI with:
-
-1. **Separate reusable blocks** - Tool, Agent, Task, Crew as independent entities
-2. **Easy composition** - Drag-drop to connect
-3. **Event-driven triggers** - 10-30+ events waiting in loop
-4. **Visual condition builder** - No code needed
-5. **Full reusability** - Any component used anywhere
-6. **Self-hosted** - No vendor lock-in
-
-This fills the gap between CrewAI Studio (cloud-only, not database-backed) and writing code directly (not visual, not reusable).
+*Document Version: 1.1 - Updated to reflect actual test-ui.html implementation*

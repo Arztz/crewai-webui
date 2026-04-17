@@ -1,6 +1,6 @@
 # CrewAI WebUI - Implementation Package
 
-> Version: 1.0 | Created: April 2026
+> Version: 1.1 | Created: April 2026 | Status: Implementation Sync
 
 ---
 
@@ -30,21 +30,7 @@ POST /tools
 {
   "name": "web_search",
   "description": "Search the web for information",
-  "type": "decorator",
-  "code": "@tool(\"Web Search\")\ndef search(query: str) -> str:\n    \"\"\"\"Search the web\"\"\"\n    return f\"Results for: {query}\"",
-  "input_schema": {
-    "query": {
-      "type": "string",
-      "description": "Search query",
-      "required": true
-    }
-  },
-  "output_schema": {
-    "results": {
-      "type": "string",
-      "description": "Search results"
-    }
-  }
+  "type": "decorator"
 }
 ```
 
@@ -55,8 +41,7 @@ POST /tools
   "name": "web_search",
   "description": "Search the web for information",
   "type": "decorator",
-  "is_active": true,
-  "version": 1,
+  "agents": [],
   "created_at": "2026-04-17T10:00:00Z",
   "updated_at": "2026-04-17T10:00:00Z"
 }
@@ -76,21 +61,24 @@ GET /tools
       "name": "web_search",
       "description": "Search the web for information",
       "type": "decorator",
-      "is_active": true,
-      "version": 1
+      "agents": ["Research", "Write"]
     },
     {
       "id": "tool-002",
       "name": "pdf_reader",
-      "description": "Read PDF documents",
+      "description": "Read PDF files",
       "type": "basetool",
-      "is_active": true,
-      "version": 1
+      "agents": ["Analyze"]
+    },
+    {
+      "id": "tool-003",
+      "name": "calculator",
+      "description": "Math calculations",
+      "type": "decorator",
+      "agents": []
     }
   ],
-  "total": 2,
-  "page": 1,
-  "page_size": 20
+  "total": 3
 }
 ```
 
@@ -106,22 +94,7 @@ GET /tools/{id}
   "name": "web_search",
   "description": "Search the web for information",
   "type": "decorator",
-  "code": "@tool(\"Web Search\")\ndef search(query: str) -> str:\n    \"\"\"Search the web\"\"\"\n    return f\"Results for: {query}\"",
-  "input_schema": {
-    "query": {
-      "type": "string",
-      "description": "Search query",
-      "required": true
-    }
-  },
-  "output_schema": {
-    "results": {
-      "type": "string",
-      "description": "Search results"
-    }
-  },
-  "is_active": true,
-  "version": 1,
+  "agents": ["Research", "Write"],
   "created_at": "2026-04-17T10:00:00Z",
   "updated_at": "2026-04-17T10:00:00Z"
 }
@@ -137,20 +110,7 @@ PUT /tools/{id}
 {
   "name": "web_search",
   "description": "Search the web for information",
-  "code": "@tool(\"Web Search\")\ndef search(query: str, limit: int = 10) -> str:\n    \"\"\"Search the web\"\"\"\n    return f\"Results for: {query}\"",
-  "input_schema": {
-    "query": {
-      "type": "string",
-      "description": "Search query",
-      "required": true
-    },
-    "limit": {
-      "type": "integer",
-      "description": "Max results",
-      "required": false,
-      "default": 10
-    }
-  }
+  "type": "decorator"
 }
 ```
 
@@ -161,8 +121,43 @@ PUT /tools/{id}
   "name": "web_search",
   "description": "Search the web for information",
   "type": "decorator",
-  "version": 2,
+  "agents": ["Research", "Write"],
   "updated_at": "2026-04-17T11:00:00Z"
+}
+```
+
+### Link Tool to Agent
+```
+POST /tools/{tool_id}/agents
+```
+
+**Request:**
+```json
+{
+  "agent_name": "Research"
+}
+```
+
+**Response (200):**
+```json
+{
+  "id": "tool-001",
+  "name": "web_search",
+  "agents": ["Research", "Write"]
+}
+```
+
+### Unlink Tool from Agent
+```
+DELETE /tools/{tool_id}/agents/{agent_name}
+```
+
+**Response (200):**
+```json
+{
+  "id": "tool-001",
+  "name": "web_search",
+  "agents": ["Write"]
 }
 ```
 
@@ -185,20 +180,10 @@ POST /agents
 **Request:**
 ```json
 {
-  "name": "Market Researcher",
-  "role": "Market Research Analyst",
-  "goal": "Research and analyze market trends",
-  "backstory": "Expert market researcher with 10+ years experience in competitive analysis",
-  "llm_provider": "openai",
-  "llm_model": "gpt-4o",
-  "llm_config": {
-    "temperature": 0.7,
-    "max_tokens": 2000
-  },
-  "tools": ["tool-001", "tool-002"],
-  "verbose": true,
-  "allow_delegation": false,
-  "max_iterations": 10
+  "name": "Research",
+  "role": "Research Analyst",
+  "goal": "Research market trends",
+  "backstory": "Expert researcher"
 }
 ```
 
@@ -206,22 +191,14 @@ POST /agents
 ```json
 {
   "id": "agent-001",
-  "name": "Market Researcher",
-  "role": "Market Research Analyst",
-  "goal": "Research and analyze market trends",
-  "backstory": "Expert market researcher with 10+ years experience",
-  "llm_provider": "openai",
-  "llm_model": "gpt-4o",
-  "llm_config": {
-    "temperature": 0.7,
-    "max_tokens": 2000
-  },
-  "tools": ["tool-001", "tool-002"],
-  "verbose": true,
-  "allow_delegation": false,
-  "max_iterations": 10,
-  "version": 1,
-  "created_at": "2026-04-17T10:00:00Z"
+  "name": "Research",
+  "role": "Research Analyst",
+  "goal": "Research market trends",
+  "backstory": "Expert researcher",
+  "tools": [],
+  "verbose": false,
+  "created_at": "2026-04-17T10:00:00Z",
+  "updated_at": "2026-04-17T10:00:00Z"
 }
 ```
 
@@ -236,26 +213,34 @@ GET /agents
   "data": [
     {
       "id": "agent-001",
-      "name": "Market Researcher",
-      "role": "Market Research Analyst",
-      "goal": "Research and analyze market trends",
-      "llm_provider": "openai",
-      "llm_model": "gpt-4o",
-      "tools": ["tool-001", "tool-002"],
-      "verbose": true
+      "name": "Research",
+      "role": "Research Analyst",
+      "goal": "Research market trends",
+      "tools": ["web_search", "pdf_reader"]
     },
     {
       "id": "agent-002",
-      "name": "Content Writer",
-      "role": "Technical Writer",
-      "goal": "Create compelling content",
-      "llm_provider": "openai",
-      "llm_model": "gpt-4o",
-      "tools": ["tool-003"],
-      "verbose": true
+      "name": "Analyze",
+      "role": "Data Analyst",
+      "goal": "Analyze data",
+      "tools": ["calculator"]
+    },
+    {
+      "id": "agent-003",
+      "name": "Write",
+      "role": "Writer",
+      "goal": "Write content",
+      "tools": ["web_search"]
+    },
+    {
+      "id": "agent-004",
+      "name": "QA",
+      "role": "QA Engineer",
+      "goal": "Ensure quality",
+      "tools": []
     }
   ],
-  "total": 2
+  "total": 4
 }
 ```
 
@@ -268,25 +253,45 @@ GET /agents/{id}
 ```json
 {
   "id": "agent-001",
-  "name": "Market Researcher",
-  "role": "Market Research Analyst",
-  "goal": "Research and analyze market trends",
-  "backstory": "Expert market researcher with 10+ years experience",
-  "llm_provider": "openai",
-  "llm_model": "gpt-4o",
-  "llm_config": {
-    "temperature": 0.7,
-    "max_tokens": 2000
-  },
+  "name": "Research",
+  "role": "Research Analyst",
+  "goal": "Research market trends",
+  "backstory": "Expert researcher",
   "tools": [
     {"id": "tool-001", "name": "web_search"},
     {"id": "tool-002", "name": "pdf_reader"}
   ],
-  "verbose": true,
-  "allow_delegation": false,
-  "max_iterations": 10,
-  "version": 1,
-  "created_at": "2026-04-17T10:00:00Z"
+  "verbose": false,
+  "created_at": "2026-04-17T10:00:00Z",
+  "updated_at": "2026-04-17T10:00:00Z"
+}
+```
+
+### Update Agent
+```
+PUT /agents/{id}
+```
+
+**Request:**
+```json
+{
+  "name": "Research",
+  "role": "Senior Research Analyst",
+  "goal": "Research market trends and provide insights",
+  "backstory": "Expert researcher with 10+ years experience"
+}
+```
+
+**Response (200):**
+```json
+{
+  "id": "agent-001",
+  "name": "Research",
+  "role": "Senior Research Analyst",
+  "goal": "Research market trends and provide insights",
+  "backstory": "Expert researcher with 10+ years experience",
+  "tools": ["web_search", "pdf_reader"],
+  "updated_at": "2026-04-17T11:00:00Z"
 }
 ```
 
@@ -298,7 +303,7 @@ POST /agents/{agent_id}/tools
 **Request:**
 ```json
 {
-  "tool_id": "tool-003"
+  "tool_name": "calculator"
 }
 ```
 
@@ -306,22 +311,31 @@ POST /agents/{agent_id}/tools
 ```json
 {
   "id": "agent-001",
-  "tools": ["tool-001", "tool-002", "tool-003"]
+  "name": "Research",
+  "tools": ["web_search", "pdf_reader", "calculator"]
 }
 ```
 
 ### Remove Tool from Agent
 ```
-DELETE /agents/{agent_id}/tools/{tool_id}
+DELETE /agents/{agent_id}/tools/{tool_name}
 ```
 
 **Response (200):**
 ```json
 {
   "id": "agent-001",
-  "tools": ["tool-001", "tool-002"]
+  "name": "Research",
+  "tools": ["web_search", "pdf_reader"]
 }
 ```
+
+### Delete Agent
+```
+DELETE /agents/{id}
+```
+
+**Response (204):** No content
 
 ---
 
@@ -335,15 +349,8 @@ POST /tasks
 **Request:**
 ```json
 {
-  "title": "Research Competitors",
-  "description": "Research top 5 competitors in the AI market",
-  "expected_output": "List of competitors with market share and analysis",
-  "agent_id": "agent-001",
-  "context_tasks": [],
-  "async_execution": false,
-  "output_format": "text",
-  "priority": "high",
-  "timeout_seconds": 300
+  "title": "Research",
+  "description": "Research competitors"
 }
 ```
 
@@ -351,17 +358,12 @@ POST /tasks
 ```json
 {
   "id": "task-001",
-  "title": "Research Competitors",
-  "description": "Research top 5 competitors in the AI market",
-  "expected_output": "List of competitors with market share and analysis",
-  "agent_id": "agent-001",
-  "context_tasks": [],
-  "async_execution": false,
-  "output_format": "text",
-  "priority": "high",
-  "timeout_seconds": 300,
-  "version": 1,
-  "created_at": "2026-04-17T10:00:00Z"
+  "title": "Research",
+  "description": "Research competitors",
+  "agent": null,
+  "context": [],
+  "created_at": "2026-04-17T10:00:00Z",
+  "updated_at": "2026-04-17T10:00:00Z"
 }
 ```
 
@@ -376,22 +378,80 @@ GET /tasks
   "data": [
     {
       "id": "task-001",
-      "title": "Research Competitors",
-      "description": "Research top 5 competitors",
-      "expected_output": "List of competitors",
-      "agent_id": "agent-001",
-      "priority": "high"
+      "title": "Research",
+      "description": "Research competitors",
+      "agent": "Research",
+      "context": []
     },
     {
       "id": "task-002",
-      "title": "Write Report",
-      "description": "Write market analysis report",
-      "expected_output": "PDF report",
-      "agent_id": "agent-002",
-      "priority": "normal"
+      "title": "Analyze",
+      "description": "Analyze data",
+      "agent": "Analyze",
+      "context": ["Research"]
+    },
+    {
+      "id": "task-003",
+      "title": "Write",
+      "description": "Write report",
+      "agent": "Write",
+      "context": ["Analyze"]
+    },
+    {
+      "id": "task-004",
+      "title": "Review",
+      "description": "Review work",
+      "agent": null,
+      "context": ["Write"]
     }
   ],
-  "total": 2
+  "total": 4
+}
+```
+
+### Get Task
+```
+GET /tasks/{id}
+```
+
+**Response (200):**
+```json
+{
+  "id": "task-001",
+  "title": "Research",
+  "description": "Research competitors",
+  "agent": {
+    "id": "agent-001",
+    "name": "Research"
+  },
+  "context": [],
+  "created_at": "2026-04-17T10:00:00Z",
+  "updated_at": "2026-04-17T10:00:00Z"
+}
+```
+
+### Update Task
+```
+PUT /tasks/{id}
+```
+
+**Request:**
+```json
+{
+  "title": "Market Research",
+  "description": "Research market trends and competitors"
+}
+```
+
+**Response (200):**
+```json
+{
+  "id": "task-001",
+  "title": "Market Research",
+  "description": "Research market trends and competitors",
+  "agent": "Research",
+  "context": [],
+  "updated_at": "2026-04-17T11:00:00Z"
 }
 ```
 
@@ -403,7 +463,7 @@ POST /tasks/{task_id}/agent
 **Request:**
 ```json
 {
-  "agent_id": "agent-002"
+  "agent_name": "Research"
 }
 ```
 
@@ -411,11 +471,24 @@ POST /tasks/{task_id}/agent
 ```json
 {
   "id": "task-001",
-  "agent_id": "agent-002"
+  "agent": "Research"
 }
 ```
 
-### Set Task Context (Dependency)
+### Unassign Agent from Task
+```
+DELETE /tasks/{task_id}/agent
+```
+
+**Response (200):**
+```json
+{
+  "id": "task-001",
+  "agent": null
+}
+```
+
+### Add Context Task (Dependency)
 ```
 POST /tasks/{task_id}/context
 ```
@@ -423,7 +496,7 @@ POST /tasks/{task_id}/context
 **Request:**
 ```json
 {
-  "context_tasks": ["task-001"]
+  "context_task": "Research"
 }
 ```
 
@@ -431,9 +504,29 @@ POST /tasks/{task_id}/context
 ```json
 {
   "id": "task-002",
-  "context_tasks": ["task-001"]
+  "context": ["Research"]
 }
 ```
+
+### Remove Context Task
+```
+DELETE /tasks/{task_id}/context/{context_task_name}
+```
+
+**Response (200):**
+```json
+{
+  "id": "task-002",
+  "context": []
+}
+```
+
+### Delete Task
+```
+DELETE /tasks/{id}
+```
+
+**Response (204):** No content
 
 ---
 
@@ -447,22 +540,8 @@ POST /crews
 **Request:**
 ```json
 {
-  "name": "Market Analysis Team",
-  "description": "Team for comprehensive market analysis",
-  "process": "sequential",
-  "verbose": 1,
-  "agents": ["agent-001", "agent-002", "agent-003"],
-  "tasks": ["task-001", "task-002", "task-003"],
-  "manager_agent_id": null,
-  "memory": false,
-  "cache": true,
-  "can_trigger_other_crews": true,
-  "trigger_chain_on": "completed",
-  "output_fields": {
-    "research_results": "string",
-    "summary": "string",
-    "recommendations": "string"
-  }
+  "name": "Market Team",
+  "process": "sequential"
 }
 ```
 
@@ -470,20 +549,14 @@ POST /crews
 ```json
 {
   "id": "crew-001",
-  "name": "Market Analysis Team",
-  "description": "Team for comprehensive market analysis",
+  "name": "Market Team",
   "process": "sequential",
-  "verbose": 1,
-  "agents": ["agent-001", "agent-002", "agent-003"],
-  "tasks": ["task-001", "task-002", "task-003"],
-  "manager_agent_id": null,
-  "memory": false,
-  "cache": true,
-  "can_trigger_other_crews": true,
-  "trigger_chain_on": "completed",
-  "is_active": true,
-  "version": 1,
-  "created_at": "2026-04-17T10:00:00Z"
+  "agents": [],
+  "tasks": [],
+  "x": 50,
+  "y": 50,
+  "created_at": "2026-04-17T10:00:00Z",
+  "updated_at": "2026-04-17T10:00:00Z"
 }
 ```
 
@@ -498,28 +571,24 @@ GET /crews
   "data": [
     {
       "id": "crew-001",
-      "name": "Market Analysis Team",
+      "name": "Market Team",
       "process": "sequential",
-      "agents_count": 3,
-      "tasks_count": 3,
-      "can_trigger_other_crews": true,
-      "is_active": true
+      "agents": ["Research", "Analyze", "Write", "QA"],
+      "tasks": ["Research", "Analyze", "Write", "Review"]
     },
     {
       "id": "crew-002",
-      "name": "Content Pipeline",
+      "name": "Quick Team",
       "process": "hierarchical",
-      "agents_count": 4,
-      "tasks_count": 5,
-      "can_trigger_other_crews": false,
-      "is_active": true
+      "agents": ["Research", "Analyze"],
+      "tasks": ["Research", "Analyze"]
     }
   ],
   "total": 2
 }
 ```
 
-### Get Crew with Full Details
+### Get Crew
 ```
 GET /crews/{id}
 ```
@@ -528,56 +597,139 @@ GET /crews/{id}
 ```json
 {
   "id": "crew-001",
-  "name": "Market Analysis Team",
-  "description": "Team for comprehensive market analysis",
+  "name": "Market Team",
   "process": "sequential",
-  "verbose": 1,
   "agents": [
-    {
-      "id": "agent-001",
-      "name": "Market Researcher",
-      "role": "Research Analyst"
-    },
-    {
-      "id": "agent-002",
-      "name": "Data Analyst",
-      "role": "Data Expert"
-    },
-    {
-      "id": "agent-003",
-      "name": "Content Writer",
-      "role": "Writer"
-    }
+    {"id": "agent-001", "name": "Research"},
+    {"id": "agent-002", "name": "Analyze"},
+    {"id": "agent-003", "name": "Write"},
+    {"id": "agent-004", "name": "QA"}
   ],
   "tasks": [
-    {
-      "id": "task-001",
-      "title": "Research Competitors",
-      "agent_id": "agent-001",
-      "order": 1
-    },
-    {
-      "id": "task-002",
-      "title": "Analyze Data",
-      "agent_id": "agent-002",
-      "order": 2,
-      "context_tasks": ["task-001"]
-    },
-    {
-      "id": "task-003",
-      "title": "Write Report",
-      "agent_id": "agent-003",
-      "order": 3,
-      "context_tasks": ["task-002"]
-    }
+    {"id": "task-001", "title": "Research"},
+    {"id": "task-002", "title": "Analyze"},
+    {"id": "task-003", "title": "Write"},
+    {"id": "task-004", "title": "Review"}
   ],
-  "manager_agent_id": null,
-  "memory": false,
-  "cache": true,
-  "can_trigger_other_crews": true,
-  "trigger_chain_on": "completed",
-  "is_active": true,
-  "version": 1
+  "x": 50,
+  "y": 50,
+  "created_at": "2026-04-17T10:00:00Z",
+  "updated_at": "2026-04-17T10:00:00Z"
+}
+```
+
+### Update Crew
+```
+PUT /crews/{id}
+```
+
+**Request:**
+```json
+{
+  "name": "Market Analysis Team",
+  "process": "hierarchical"
+}
+```
+
+**Response (200):**
+```json
+{
+  "id": "crew-001",
+  "name": "Market Analysis Team",
+  "process": "hierarchical",
+  "agents": ["Research", "Analyze", "Write", "QA"],
+  "tasks": ["Research", "Analyze", "Write", "Review"],
+  "x": 50,
+  "y": 50,
+  "updated_at": "2026-04-17T11:00:00Z"
+}
+```
+
+### Update Crew Position (Canvas)
+```
+PATCH /crews/{id}/position
+```
+
+**Request:**
+```json
+{
+  "x": 200,
+  "y": 150
+}
+```
+
+**Response (200):**
+```json
+{
+  "id": "crew-001",
+  "x": 200,
+  "y": 150
+}
+```
+
+### Add Agent to Crew
+```
+POST /crews/{crew_id}/agents
+```
+
+**Request:**
+```json
+{
+  "agent_name": "Write"
+}
+```
+
+**Response (200):**
+```json
+{
+  "id": "crew-001",
+  "agents": ["Research", "Analyze", "Write", "QA"]
+}
+```
+
+### Remove Agent from Crew
+```
+DELETE /crews/{crew_id}/agents/{agent_name}
+```
+
+**Response (200):**
+```json
+{
+  "id": "crew-001",
+  "agents": ["Research", "Analyze", "QA"]
+}
+```
+
+### Add Task to Crew
+```
+POST /crews/{crew_id}/tasks
+```
+
+**Request:**
+```json
+{
+  "task_title": "Review"
+}
+```
+
+**Response (200):**
+```json
+{
+  "id": "crew-001",
+  "tasks": ["Research", "Analyze", "Write", "Review"]
+}
+```
+
+### Remove Task from Crew
+```
+DELETE /crews/{crew_id}/tasks/{task_title}
+```
+
+**Response (200):**
+```json
+{
+  "id": "crew-001",
+  "tasks": ["Research", "Analyze", "Write"]
 }
 ```
 
@@ -586,12 +738,11 @@ GET /crews/{id}
 POST /crews/{id}/run
 ```
 
-**Request:**
+**Request (optional):**
 ```json
 {
   "inputs": {
-    "topic": "AI market trends",
-    "region": "global"
+    "topic": "AI market trends"
   }
 }
 ```
@@ -606,35 +757,12 @@ POST /crews/{id}/run
 }
 ```
 
-### Get Execution Result
+### Delete Crew
 ```
-GET /executions/{execution_id}
+DELETE /crews/{id}
 ```
 
-**Response (200):**
-```json
-{
-  "id": "exec-001",
-  "crew_id": "crew-001",
-  "status": "completed",
-  "input_data": {
-    "topic": "AI market trends",
-    "region": "global"
-  },
-  "output_data": {
-    "research_results": "Top competitors: OpenAI, Anthropic, Google...",
-    "summary": "The AI market is valued at $150B...",
-    "recommendations": "Invest in LLM infrastructure..."
-  },
-  "started_at": "2026-04-17T10:00:00Z",
-  "completed_at": "2026-04-17T10:05:00Z",
-  "duration_seconds": 300,
-  "token_usage": {
-    "input": 5000,
-    "output": 3000
-  }
-}
-```
+**Response (204):** No content
 
 ---
 
@@ -759,6 +887,57 @@ GET /triggers
 }
 ```
 
+### Get Trigger
+```
+GET /triggers/{id}
+```
+
+**Response (200):**
+```json
+{
+  "id": "trigger-002",
+  "name": "After Research → Analysis",
+  "description": "Trigger analysis after research completes",
+  "type": "crew_completion",
+  "event_source": "crew",
+  "source_crew_id": "crew-001",
+  "event_type": "completed",
+  "crew_id": "crew-002",
+  "output_mapping": {
+    "research_data": "{{source.output.research_results}}",
+    "summary": "{{source.output.summary}}"
+  },
+  "continue_on_failure": false,
+  "enabled": true,
+  "trigger_count": 3,
+  "last_triggered_at": "2026-04-17T09:30:00Z",
+  "created_at": "2026-04-17T08:00:00Z"
+}
+```
+
+### Update Trigger
+```
+PUT /triggers/{id}
+```
+
+**Request:**
+```json
+{
+  "name": "After Market Analysis",
+  "enabled": true
+}
+```
+
+**Response (200):**
+```json
+{
+  "id": "trigger-002",
+  "name": "After Market Analysis",
+  "enabled": true,
+  "updated_at": "2026-04-17T11:00:00Z"
+}
+```
+
 ### Enable/Disable Trigger
 ```
 POST /triggers/{id}/enable
@@ -774,6 +953,13 @@ POST /triggers/{id}/disable
   "enabled": true
 }
 ```
+
+### Delete Trigger
+```
+DELETE /triggers/{id}
+```
+
+**Response (204):** No content
 
 ---
 
@@ -797,19 +983,19 @@ GET /executions
     {
       "id": "exec-001",
       "crew_id": "crew-001",
-      "crew_name": "Market Analysis Team",
+      "crew_name": "Market Team",
       "status": "completed",
-      "started_at": "2026-04-17T10:00:00Z",
-      "completed_at": "2026-04-17T10:05:00Z",
-      "duration_seconds": 300
+      "started_at": "2026-04-17T09:00:00Z",
+      "completed_at": "2026-04-17T09:15:00Z",
+      "duration_seconds": 900
     },
     {
       "id": "exec-002",
-      "crew_id": "crew-002",
-      "crew_name": "Content Pipeline",
+      "crew_id": "crew-001",
+      "crew_name": "Market Team",
       "status": "running",
-      "started_at": "2026-04-17T11:00:00Z",
-      "duration_seconds": 60
+      "started_at": "2026-04-17T10:00:00Z",
+      "duration_seconds": 120
     }
   ],
   "total": 2
@@ -826,21 +1012,21 @@ GET /executions/{id}
 {
   "id": "exec-001",
   "crew_id": "crew-001",
-  "crew_name": "Market Analysis Team",
+  "crew_name": "Market Team",
   "trigger_id": "trigger-002",
   "status": "completed",
   "input_data": {
     "topic": "AI market trends"
   },
   "output_data": {
-    "research_results": "...",
-    "summary": "...",
-    "recommendations": "..."
+    "research_results": "Top competitors: OpenAI, Anthropic, Google...",
+    "summary": "The AI market is valued at $150B...",
+    "recommendations": "Invest in LLM infrastructure..."
   },
   "error_message": null,
-  "started_at": "2026-04-17T10:00:00Z",
-  "completed_at": "2026-04-17T10:05:00Z",
-  "duration_seconds": 300,
+  "started_at": "2026-04-17T09:00:00Z",
+  "completed_at": "2026-04-17T09:15:00Z",
+  "duration_seconds": 900,
   "token_usage": {
     "input": 5000,
     "output": 3000,
@@ -849,17 +1035,19 @@ GET /executions/{id}
   "task_results": [
     {
       "task_id": "task-001",
-      "task_title": "Research Competitors",
+      "task_title": "Research",
+      "agent_name": "Research",
       "status": "completed",
-      "output": "...",
-      "duration_seconds": 120
+      "output": "Competitor analysis complete...",
+      "duration_seconds": 300
     },
     {
       "task_id": "task-002",
-      "task_title": "Analyze Data",
+      "task_title": "Analyze",
+      "agent_name": "Analyze",
       "status": "completed",
-      "output": "...",
-      "duration_seconds": 100
+      "output": "Data analysis complete...",
+      "duration_seconds": 300
     }
   ]
 }
@@ -897,251 +1085,262 @@ POST /webhooks/{trigger_name}
 
 ---
 
-# Part 2: Mock Data (JSON)
+# Part 2: Mock Data (Frontend Store)
 
 ## Full Mock Data for Frontend
 
-```json
-{
-  "tools": [
-    {
-      "id": "tool-001",
-      "name": "web_search",
-      "description": "Search the web for information",
-      "type": "decorator",
-      "is_active": true,
-      "linked_agents": ["agent-001", "agent-003"]
+```javascript
+const store = {
+    tools: {
+        'web_search': {
+            name: 'web_search',
+            description: 'Search the web',
+            type: 'decorator',
+            agents: ['Research', 'Write']
+        },
+        'pdf_reader': {
+            name: 'pdf_reader',
+            description: 'Read PDF files',
+            type: 'basetool',
+            agents: ['Research', 'Analyze']
+        },
+        'calculator': {
+            name: 'calculator',
+            description: 'Math calculations',
+            type: 'decorator',
+            agents: ['Analyze']
+        }
     },
-    {
-      "id": "tool-002",
-      "name": "pdf_reader",
-      "description": "Read and extract text from PDF",
-      "type": "basetool",
-      "is_active": true,
-      "linked_agents": ["agent-002"]
+    agents: {
+        'Research': {
+            name: 'Research',
+            role: 'Research Analyst',
+            goal: 'Research market trends',
+            backstory: 'Expert researcher',
+            tools: ['web_search', 'pdf_reader']
+        },
+        'Analyze': {
+            name: 'Analyze',
+            role: 'Data Analyst',
+            goal: 'Analyze data',
+            backstory: 'Data expert',
+            tools: ['pdf_reader', 'calculator']
+        },
+        'Write': {
+            name: 'Write',
+            role: 'Writer',
+            goal: 'Write content',
+            backstory: 'Professional writer',
+            tools: ['web_search']
+        },
+        'QA': {
+            name: 'QA',
+            role: 'QA Engineer',
+            goal: 'Ensure quality',
+            backstory: 'Quality expert',
+            tools: []
+        }
     },
-    {
-      "id": "tool-003",
-      "name": "calculator",
-      "description": "Perform mathematical calculations",
-      "type": "decorator",
-      "is_active": true,
-      "linked_agents": ["agent-002", "agent-004"]
+    tasks: {
+        'Research': {
+            title: 'Research',
+            description: 'Research competitors',
+            agent: 'Research',
+            context: []
+        },
+        'Analyze': {
+            title: 'Analyze',
+            description: 'Analyze data',
+            agent: 'Analyze',
+            context: ['Research']
+        },
+        'Write': {
+            title: 'Write',
+            description: 'Write report',
+            agent: 'Write',
+            context: ['Analyze']
+        },
+        'Review': {
+            title: 'Review',
+            description: 'Review work',
+            agent: null,
+            context: ['Write']
+        }
     },
-    {
-      "id": "tool-004",
-      "name": "email_sender",
-      "description": "Send emails via SMTP",
-      "type": "basetool",
-      "is_active": true,
-      "linked_agents": ["agent-003"]
+    crews: {
+        'Market Team': {
+            name: 'Market Team',
+            process: 'sequential',
+            agents: ['Research', 'Analyze', 'Write', 'QA'],
+            tasks: ['Research', 'Analyze', 'Write', 'Review'],
+            x: 50,
+            y: 50
+        },
+        'Quick Team': {
+            name: 'Quick Team',
+            process: 'hierarchical',
+            agents: ['Research', 'Analyze'],
+            tasks: ['Research', 'Analyze'],
+            x: 50,
+            y: 320
+        }
+    },
+    canvas: {
+        offsetX: 0,
+        offsetY: 0,
+        scale: 1
     }
-  ],
-  "agents": [
-    {
-      "id": "agent-001",
-      "name": "Market Researcher",
-      "role": "Market Research Analyst",
-      "goal": "Research and analyze market trends",
-      "backstory": "Expert in competitive analysis and market research",
-      "llm_provider": "openai",
-      "llm_model": "gpt-4o",
-      "tools": [
-        {"id": "tool-001", "name": "web_search"},
-        {"id": "tool-002", "name": "pdf_reader"}
-      ],
-      "verbose": true
-    },
-    {
-      "id": "agent-002",
-      "name": "Data Analyst",
-      "role": "Data Science Expert",
-      "goal": "Analyze data and find insights",
-      "backstory": "PhD in Statistics with 10 years experience",
-      "llm_provider": "openai",
-      "llm_model": "gpt-4o",
-      "tools": [
-        {"id": "tool-002", "name": "pdf_reader"},
-        {"id": "tool-003", "name": "calculator"}
-      ],
-      "verbose": true
-    },
-    {
-      "id": "agent-003",
-      "name": "Content Writer",
-      "role": "Technical Writer",
-      "goal": "Create compelling content",
-      "backstory": "Former journalist, expert in tech writing",
-      "llm_provider": "openai",
-      "llm_model": "gpt-4o",
-      "tools": [
-        {"id": "tool-001", "name": "web_search"},
-        {"id": "tool-004", "name": "email_sender"}
-      ],
-      "verbose": true
-    },
-    {
-      "id": "agent-004",
-      "name": "Quality Assurance",
-      "role": "QA Engineer",
-      "goal": "Ensure quality and accuracy",
-      "backstory": "Expert in quality assurance and editing",
-      "llm_provider": "openai",
-      "llm_model": "gpt-4o",
-      "tools": [
-        {"id": "tool-003", "name": "calculator"}
-      ],
-      "verbose": false
-    }
-  ],
-  "tasks": [
-    {
-      "id": "task-001",
-      "title": "Research Competitors",
-      "description": "Research top 5 competitors in the AI market",
-      "expected_output": "List with market share, pricing, features",
-      "agent_id": "agent-001",
-      "order": 1
-    },
-    {
-      "id": "task-002",
-      "title": "Analyze Data",
-      "description": "Analyze competitor data for trends",
-      "expected_output": "Charts and insights",
-      "agent_id": "agent-002",
-      "order": 2,
-      "context_tasks": ["task-001"]
-    },
-    {
-      "id": "task-003",
-      "title": "Write Report",
-      "description": "Write comprehensive market report",
-      "expected_output": "PDF report with executive summary",
-      "agent_id": "agent-003",
-      "order": 3,
-      "context_tasks": ["task-002"]
-    },
-    {
-      "id": "task-004",
-      "title": "Review Quality",
-      "description": "Review report for accuracy",
-      "expected_output": "Reviewed report with notes",
-      "agent_id": "agent-004",
-      "order": 4,
-      "context_tasks": ["task-003"]
-    }
-  ],
-  "crews": [
-    {
-      "id": "crew-001",
-      "name": "Market Analysis Team",
-      "description": "Complete market analysis workflow",
-      "process": "sequential",
-      "agents": [
-        {"id": "agent-001", "name": "Market Researcher"},
-        {"id": "agent-002", "name": "Data Analyst"},
-        {"id": "agent-003", "name": "Content Writer"},
-        {"id": "agent-004", "name": "Quality Assurance"}
-      ],
-      "tasks": [
-        {"id": "task-001", "title": "Research Competitors", "order": 1},
-        {"id": "task-002", "title": "Analyze Data", "order": 2},
-        {"id": "task-003", "title": "Write Report", "order": 3},
-        {"id": "task-004", "title": "Review Quality", "order": 4}
-      ],
-      "can_trigger_other_crews": true,
-      "trigger_chain_on": "completed",
-      "is_active": true
-    },
-    {
-      "id": "crew-002",
-      "name": "Quick Analysis Team",
-      "description": "Fast analysis with hierarchical control",
-      "process": "hierarchical",
-      "manager_agent_id": "agent-001",
-      "agents": [
-        {"id": "agent-001", "name": "Market Researcher"},
-        {"id": "agent-002", "name": "Data Analyst"}
-      ],
-      "tasks": [
-        {"id": "task-001"},
-        {"id": "task-002"}
-      ],
-      "can_trigger_other_crews": false,
-      "is_active": true
-    }
-  ],
-  "triggers": [
-    {
-      "id": "trigger-001",
-      "name": "New Lead",
-      "description": "Trigger on new database lead",
-      "type": "event",
-      "event_source": "database",
-      "crew_id": "crew-001",
-      "enabled": true,
-      "trigger_count": 12
-    },
-    {
-      "id": "trigger-002",
-      "name": "After Market Analysis",
-      "description": "Run content pipeline after analysis",
-      "type": "crew_completion",
-      "event_source": "crew",
-      "source_crew_id": "crew-001",
-      "event_type": "completed",
-      "crew_id": "crew-002",
-      "enabled": true,
-      "trigger_count": 8
-    },
-    {
-      "id": "trigger-003",
-      "name": "Daily Report",
-      "description": "Generate daily report",
-      "type": "schedule",
-      "event_source": "cron",
-      "cron_expression": "0 9 * * *",
-      "crew_id": "crew-001",
-      "enabled": true,
-      "trigger_count": 30
-    }
-  ],
-  "executions": [
-    {
-      "id": "exec-001",
-      "crew_id": "crew-001",
-      "crew_name": "Market Analysis Team",
-      "status": "completed",
-      "started_at": "2026-04-17T09:00:00Z",
-      "completed_at": "2026-04-17T09:15:00Z",
-      "duration_seconds": 900
-    },
-    {
-      "id": "exec-002",
-      "crew_id": "crew-001",
-      "crew_name": "Market Analysis Team",
-      "status": "running",
-      "started_at": "2026-04-17T10:00:00Z",
-      "duration_seconds": 120
-    },
-    {
-      "id": "exec-003",
-      "crew_id": "crew-001",
-      "crew_name": "Market Analysis Team",
-      "status": "failed",
-      "started_at": "2026-04-17T08:00:00Z",
-      "completed_at": "2026-04-17T08:05:00Z",
-      "error_message": "API rate limit exceeded"
-    }
-  ]
-}
+};
 ```
 
 ---
 
-# Part 3: Test UI (HTML Demo)
+# Part 3: Implementation Notes
 
- `test-ui.html`  open in browser.
+## Drag & Drop Implementation
+
+### Drag Sources
+- Sidebar items: `draggable="true"`, `data-type`, `data-name`
+- Events: `dragstart`, `dragend`
+
+### Drop Targets
+- **Crew node**: `dragover`, `drop` handlers
+- **Agent badge**: `dragover` to highlight, drop to link tool
+
+### Drag State Management
+```javascript
+let draggedData = null;
+
+function handleDragStart(e) {
+    const type = e.target.dataset.type;
+    const name = e.target.dataset.name;
+    draggedData = { type, name, targetAgent: null };
+}
+
+// Clean up on dragend (anywhere)
+document.addEventListener('dragend', (e) => {
+    draggedData = null;
+    document.querySelectorAll('.crew-badge.agent').forEach(badge => {
+        badge.style.background = '';
+    });
+});
+```
+
+### Tool → Agent Linking
+```javascript
+node.addEventListener('drop', (e) => {
+    const agentBadge = e.target.closest('.crew-badge.agent');
+
+    if (draggedData.type === 'tool' && agentBadge) {
+        const agentName = extractAgentName(agentBadge);
+        if (!store.agents[agentName].tools.includes(draggedData.name)) {
+            store.agents[agentName].tools.push(draggedData.name);
+            store.tools[draggedData.name].agents.push(agentName);
+        }
+    }
+});
+```
+
+## Canvas Panning
+
+```javascript
+const canvas = document.getElementById('canvas');
+const canvasInner = document.getElementById('canvasInner');
+let isPanning = false;
+let panStart = { x: 0, y: 0 };
+
+canvas.addEventListener('mousedown', (e) => {
+    if (e.target === canvas || e.target === canvasInner) {
+        isPanning = true;
+        panStart = { x: e.clientX - store.canvas.offsetX, y: e.clientY - store.canvas.offsetY };
+    }
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (isPanning) {
+        store.canvas.offsetX = e.clientX - panStart.x;
+        store.canvas.offsetY = e.clientY - panStart.y;
+        canvasInner.style.transform = `translate(${store.canvas.offsetX}px, ${store.canvas.offsetY}px)`;
+    }
+});
+
+document.addEventListener('mouseup', () => {
+    isPanning = false;
+});
+```
+
+## Crew Node Dragging (Header Only)
+
+```javascript
+let draggedCrew = null;
+let crewOffset = { x: 0, y: 0 };
+
+document.addEventListener('mousedown', (e) => {
+    const crewHeader = e.target.closest('.crew-header');
+    if (crewHeader) {
+        const crewNode = crewHeader.closest('.crew-node');
+        draggedCrew = crewNode.dataset.crew;
+        const rect = crewNode.getBoundingClientRect();
+        crewOffset = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+    }
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (draggedCrew) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left - store.canvas.offsetX - crewOffset.x;
+        const y = e.clientY - rect.top - store.canvas.offsetY - crewOffset.y;
+        store.crews[draggedCrew].x = Math.max(0, x);
+        store.crews[draggedCrew].y = Math.max(0, y);
+        renderCanvas();
+    }
+});
+
+document.addEventListener('mouseup', () => {
+    draggedCrew = null;
+});
+```
+
+## Modal Event Delegation
+
+```javascript
+document.getElementById('modalBody').addEventListener('click', (e) => {
+    const removeToolBtn = e.target.closest('[data-action="remove-tool"]');
+    if (removeToolBtn) {
+        const agentName = removeToolBtn.dataset.agent;
+        const toolName = removeToolBtn.dataset.tool;
+        unlinkAgentTool(agentName, toolName);
+        openEditModal(currentModal.type, currentModal.entity);
+        return;
+    }
+    // ... handle other actions
+});
+```
+
+---
+
+# Part 4: Test UI Reference
+
+`test-ui.html` - Full implementation (~1643 lines)
+
+**Features implemented:**
+- Sidebar with collapsible sections, search, entity counts
+- Canvas with grid background and panning
+- Crew nodes with header-only dragging
+- Drag-drop from sidebar to crew
+- Tool→Agent badge linking
+- Create/Edit modals for all entities
+- Link modals for adding connections
+- Agent badges showing name + linked tools
+- Task badges numbered by position
+- Process mode (Sequential/Hierarchical) per crew
+- Help panel overlay
+- Keyboard shortcuts (Escape to close)
+
+**File location:** `/home/arztz/Projects/CrewAI/test-ui.html`
 
 ---
 
@@ -1152,7 +1351,10 @@ This implementation package contains:
 | Part | Contents |
 |------|----------|
 | **API Design** | Full REST API contracts with request/response examples |
-| **Mock Data** | Complete JSON data for all entities (tools, agents, tasks, crews, triggers, executions) |
-| **Test UI** | Interactive HTML demo showing canvas, nodes, drag-drop, and process toggle |
+| **Mock Data** | Frontend store structure matching test-ui.html |
+| **Implementation Notes** | Key code patterns for drag-drop, panning, modals |
+| **Test UI** | Full HTML implementation (~1643 lines) |
 
-All three parts work together - the mock data can be used directly in the test UI for development.
+All parts work together - the mock data structure matches the test-ui.html store, and the API design supports all frontend operations.
+
+*Document Version: 1.1 - Updated to reflect actual test-ui.html implementation*
