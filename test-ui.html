@@ -864,14 +864,26 @@
                             <div class="crew-section-title">Agents</div>
                             <div class="crew-agents">
                                 ${crew.agents.length > 0
-                                    ? crew.agents.map(a => `
-                                        <span class="crew-badge agent ${store.agents[a]?.tools?.length > 0 ? 'has-tools' : ''}"
-                                              onclick="openEditModal('agent', '${a}')"
-                                              title="Click to edit agent">
-                                            👤 ${a}
-                                            <span class="remove" onclick="event.stopPropagation(); removeFromCrew('${crew.name}', 'agent', '${a}')">×</span>
-                                        </span>
-                                    `).join('')
+                                    ? crew.agents.map(a => {
+                                        const agent = store.agents[a];
+                                        const tools = agent?.tools || [];
+                                        return `
+                                            <div class="crew-badge agent ${tools.length > 0 ? 'has-tools' : ''}"
+                                                 onclick="openEditModal('agent', '${a}')"
+                                                 title="Click to edit agent"
+                                                 style="flex-direction:column;align-items:flex-start;gap:4px;min-width:120px;">
+                                                <div style="display:flex;align-items:center;width:100%;">
+                                                    <span>👤 ${a}</span>
+                                                    <span class="remove" onclick="event.stopPropagation(); removeFromCrew('${crew.name}', 'agent', '${a}')">×</span>
+                                                </div>
+                                                ${tools.length > 0 ? `
+                                                    <div style="display:flex;flex-wrap:wrap;gap:3px;padding-left:16px;">
+                                                        ${tools.map(t => `<span style="font-size:10px;color:#f59e0b;">🔧 ${t}</span>`).join('')}
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        `;
+                                    }).join('')
                                     : '<span style="color:#666;font-size:11px;">Drag agent here</span>'
                                 }
                             </div>
@@ -910,12 +922,16 @@
                     node.classList.remove('drag-over');
                     if (!draggedData) return;
 
-                    // If dragging tool onto agent in this crew
-                    if (draggedData.type === 'tool' && draggedData.targetAgent) {
+                    // Check if dropped directly on an agent badge
+                    const agentBadge = e.target.closest('.crew-badge.agent');
+
+                    if (draggedData.type === 'tool' && agentBadge) {
                         // Link tool to agent
-                        if (!store.agents[draggedData.targetAgent].tools.includes(draggedData.name)) {
-                            store.agents[draggedData.targetAgent].tools.push(draggedData.name);
-                            store.tools[draggedData.name].agents.push(draggedData.targetAgent);
+                        const agentName = agentBadge.textContent.replace('×', '').trim().split(' ').slice(1).join(' ');
+                        if (!store.agents[agentName].tools.includes(draggedData.name)) {
+                            store.agents[agentName].tools.push(draggedData.name);
+                            store.tools[draggedData.name].agents.push(agentName);
+                            renderCanvas();
                         }
                     } else if (draggedData.type === 'agent' || draggedData.type === 'task') {
                         addToCrew(crew.name, draggedData.type, draggedData.name);
@@ -968,12 +984,19 @@
 
         // Update dragover on agent badges to set targetAgent
         document.addEventListener('dragover', (e) => {
-            if (draggedData?.type === 'tool') {
-                const agentBadge = e.target.closest('.crew-badge.agent');
-                if (agentBadge) {
-                    const agentName = agentBadge.textContent.replace('×', '').trim().split(' ').slice(1).join(' ');
-                    draggedData.targetAgent = agentName;
-                }
+            const agentBadge = e.target.closest('.crew-badge.agent');
+            if (agentBadge && draggedData?.type === 'tool') {
+                e.preventDefault();
+                const agentName = agentBadge.textContent.replace('×', '').trim().split(' ').slice(1).join(' ');
+                draggedData.targetAgent = agentName;
+                agentBadge.style.background = '#10b98140';
+            }
+        });
+
+        document.addEventListener('dragleave', (e) => {
+            const agentBadge = e.target.closest('.crew-badge.agent');
+            if (agentBadge) {
+                agentBadge.style.background = '';
             }
         });
 
@@ -1032,19 +1055,23 @@
             draggedData = null;
         });
 
-        // Crew node dragging
+        // Crew node dragging - only on header
         let draggedCrew = null;
         let crewOffset = { x: 0, y: 0 };
 
         document.addEventListener('mousedown', (e) => {
-            const crewNode = e.target.closest('.crew-node');
-            if (crewNode && !e.target.classList.contains('remove')) {
-                draggedCrew = crewNode.dataset.crew;
-                const rect = crewNode.getBoundingClientRect();
-                crewOffset = {
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top
-                };
+            // Only start dragging if clicking on crew header
+            const crewHeader = e.target.closest('.crew-header');
+            if (crewHeader) {
+                const crewNode = crewHeader.closest('.crew-node');
+                if (crewNode) {
+                    draggedCrew = crewNode.dataset.crew;
+                    const rect = crewNode.getBoundingClientRect();
+                    crewOffset = {
+                        x: e.clientX - rect.left,
+                        y: e.clientY - rect.top
+                    };
+                }
             }
         });
 
@@ -1230,6 +1257,7 @@
                     </div>
                 `;
             } else if (type === 'agent') {
+                const tools = data.tools || [];
                 return `
                     <div class="form-group">
                         <label>Name</label>
@@ -1244,14 +1272,27 @@
                         <textarea id="f-goal">${data.goal}</textarea>
                     </div>
                     <div class="form-group">
-                        <label>Tools</label>
+                        <label>Backstory</label>
+                        <textarea id="f-backstory">${data.backstory || ''}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Tools (click × to remove)</label>
                         <div class="badge-list">
-                            ${data.tools.map(t => `<span class="badge tool">🔧 ${t} <span class="remove" onclick="unlinkAgentTool('${name}', '${t}')">×</span></span>`).join('') || '<span style="color:#666;font-size:12px;">No tools linked</span>'}
+                            ${tools.length > 0
+                                ? tools.map(t => `
+                                    <span class="badge tool" data-tool="${t}">
+                                        🔧 ${t}
+                                        <span class="remove" data-action="remove-tool" data-agent="${name}" data-tool="${t}">×</span>
+                                    </span>
+                                `).join('')
+                                : '<span style="color:#666;font-size:12px;">No tools linked</span>'}
                         </div>
                         <button class="btn btn-secondary" style="width:100%;" onclick="openLinkModal('agent_tool', '${name}')">+ Add Tool</button>
                     </div>
                 `;
             } else if (type === 'task') {
+                const assignedAgent = data.agent;
+                const contexts = data.context || [];
                 return `
                     <div class="form-group">
                         <label>Title</label>
@@ -1262,16 +1303,28 @@
                         <textarea id="f-description">${data.description}</textarea>
                     </div>
                     <div class="form-group">
-                        <label>Assigned Agent</label>
+                        <label>Assigned Agent (click × to remove)</label>
                         <div class="badge-list">
-                            ${data.agent ? `<span class="badge agent">👤 ${data.agent} <span class="remove" onclick="unassignTaskAgent('${name}')">×</span></span>` : '<span style="color:#666;font-size:12px;">No agent assigned</span>'}
+                            ${assignedAgent ? `
+                                <span class="badge agent" data-agent="${assignedAgent}">
+                                    👤 ${assignedAgent}
+                                    <span class="remove" data-action="remove-task-agent" data-task="${name}" data-agent="${assignedAgent}">×</span>
+                                </span>
+                            ` : '<span style="color:#666;font-size:12px;">No agent assigned</span>'}
                         </div>
                         <button class="btn btn-secondary" style="width:100%;" onclick="openLinkModal('task_agent', '${name}')">+ Assign Agent</button>
                     </div>
                     <div class="form-group">
-                        <label>Dependencies</label>
+                        <label>Dependencies (click × to remove)</label>
                         <div class="badge-list">
-                            ${data.context.map(c => `<span class="badge task">📋 ${c} <span class="remove" onclick="removeTaskContext('${name}', '${c}')">×</span></span>`).join('') || '<span style="color:#666;font-size:12px;">No dependencies</span>'}
+                            ${contexts.length > 0
+                                ? contexts.map(c => `
+                                    <span class="badge task">
+                                        📋 ${c}
+                                        <span class="remove" data-action="remove-context" data-task="${name}" data-context="${c}">×</span>
+                                    </span>
+                                `).join('')
+                                : '<span style="color:#666;font-size:12px;">No dependencies</span>'}
                         </div>
                         <button class="btn btn-secondary" style="width:100%;" onclick="openLinkModal('task_context', '${name}')">+ Add Dependency</button>
                     </div>
@@ -1290,15 +1343,29 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Agents (click to remove)</label>
+                        <label>Agents (drag to add, click × to remove)</label>
                         <div class="badge-list">
-                            ${data.agents.map(a => `<span class="badge agent">👤 ${a} <span class="remove" onclick="removeCrewAgent('${entity}', '${a}')">×</span></span>`).join('') || '<span style="color:#666;font-size:12px;">Drag agent here</span>'}
+                            ${data.agents.length > 0
+                                ? data.agents.map(a => `
+                                    <span class="badge agent">
+                                        👤 ${a}
+                                        <span class="remove" data-action="remove-crew-agent" data-crew="${entity}" data-agent="${a}">×</span>
+                                    </span>
+                                `).join('')
+                                : '<span style="color:#666;font-size:12px;">Drag agent here</span>'}
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Tasks (click to remove)</label>
+                        <label>Tasks (drag to add, click × to remove)</label>
                         <div class="badge-list">
-                            ${data.tasks.map((t, i) => `<span class="badge task">📋 ${i+1}. ${t} <span class="remove" onclick="removeCrewTask('${entity}', '${t}')">×</span></span>`).join('') || '<span style="color:#666;font-size:12px;">Drag task here</span>'}
+                            ${data.tasks.length > 0
+                                ? data.tasks.map((t, i) => `
+                                    <span class="badge task">
+                                        📋 ${i + 1}. ${t}
+                                        <span class="remove" data-action="remove-crew-task" data-crew="${entity}" data-task="${t}">×</span>
+                                    </span>
+                                `).join('')
+                                : '<span style="color:#666;font-size:12px;">Drag task here</span>'}
                         </div>
                     </div>
                 `;
@@ -1494,6 +1561,66 @@
                 const type = item.dataset.type;
                 const name = item.dataset.name;
                 openEditModal(type, name);
+            }
+        });
+
+        // Modal event delegation for dynamic badge remove buttons
+        document.getElementById('modalBody').addEventListener('click', (e) => {
+            const removeToolBtn = e.target.closest('[data-action="remove-tool"]');
+            if (removeToolBtn) {
+                const agentName = removeToolBtn.dataset.agent;
+                const toolName = removeToolBtn.dataset.tool;
+                unlinkAgentTool(agentName, toolName);
+                // Refresh the modal
+                if (currentModal.entity) {
+                    openEditModal(currentModal.type, currentModal.entity);
+                }
+                return;
+            }
+
+            const removeTaskAgentBtn = e.target.closest('[data-action="remove-task-agent"]');
+            if (removeTaskAgentBtn) {
+                const taskName = removeTaskAgentBtn.dataset.task;
+                store.tasks[taskName].agent = null;
+                if (currentModal.entity) {
+                    openEditModal(currentModal.type, currentModal.entity);
+                }
+                return;
+            }
+
+            const removeContextBtn = e.target.closest('[data-action="remove-context"]');
+            if (removeContextBtn) {
+                const taskName = removeContextBtn.dataset.task;
+                const contextName = removeContextBtn.dataset.context;
+                store.tasks[taskName].context = store.tasks[taskName].context.filter(c => c !== contextName);
+                if (currentModal.entity) {
+                    openEditModal(currentModal.type, currentModal.entity);
+                }
+                return;
+            }
+
+            const removeCrewAgentBtn = e.target.closest('[data-action="remove-crew-agent"]');
+            if (removeCrewAgentBtn) {
+                const crewName = removeCrewAgentBtn.dataset.crew;
+                const agentName = removeCrewAgentBtn.dataset.agent;
+                store.crews[crewName].agents = store.crews[crewName].agents.filter(a => a !== agentName);
+                renderCanvas();
+                if (currentModal.entity) {
+                    openEditModal(currentModal.type, currentModal.entity);
+                }
+                return;
+            }
+
+            const removeCrewTaskBtn = e.target.closest('[data-action="remove-crew-task"]');
+            if (removeCrewTaskBtn) {
+                const crewName = removeCrewTaskBtn.dataset.crew;
+                const taskName = removeCrewTaskBtn.dataset.task;
+                store.crews[crewName].tasks = store.crews[crewName].tasks.filter(t => t !== taskName);
+                renderCanvas();
+                if (currentModal.entity) {
+                    openEditModal(currentModal.type, currentModal.entity);
+                }
+                return;
             }
         });
 
